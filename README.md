@@ -1,5 +1,7 @@
 # Discount Code Manager
 
+> **Learning Project**: Built to explore Agentic Development and experiment with [Claude Code](https://claude.ai/code).
+
 A Flask web application for managing discount codes.
 
 ## Tech Stack
