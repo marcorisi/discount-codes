@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+# Activate the virtual environment
+source venv/bin/activate
+
 # Run tests
 pytest -v
 
