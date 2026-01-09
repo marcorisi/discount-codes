@@ -10,6 +10,50 @@
         </a>
     </div>
 
-    <p class="text-gray-600">Your discount codes will appear here.</p>
+    {% if codes %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for code in codes %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 {% if code.is_used %}opacity-60{% endif %}">
+            <div class="flex items-start justify-between mb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">{{ code.store_name }}</h2>
+                    <code class="text-sm bg-gray-100 px-2 py-1 rounded font-mono">{{ code.code }}</code>
+                </div>
+                {% if code.discount_value %}
+                <span class="text-lg font-bold text-green-600">{{ code.discount_value }}</span>
+                {% endif %}
+            </div>
+
+            {% if code.notes %}
+            <p class="text-sm text-gray-600 mb-3">{{ code.notes }}</p>
+            {% endif %}
+
+            <div class="flex items-center justify-between text-sm">
+                <div>
+                    {% if code.expiry_date %}
+                        {% if code.expiry_date < today %}
+                        <span class="text-red-600 font-medium">Expired {{ code.expiry_date.strftime('%b %d, %Y') }}</span>
+                        {% else %}
+                        <span class="text-gray-500">Expires {{ code.expiry_date.strftime('%b %d, %Y') }}</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="text-gray-400">No expiry</span>
+                    {% endif %}
+                </div>
+                {% if code.is_used %}
+                <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs font-medium">Used</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <p class="text-gray-500 mb-4">No discount codes yet.</p>
+        <a href="{{ url_for('codes.add_code') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+            Add your first code
+        </a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

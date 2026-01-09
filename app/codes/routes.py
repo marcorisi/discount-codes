@@ -1,6 +1,6 @@
 """Codes domain routes."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
@@ -15,12 +15,15 @@ bp = Blueprint("codes", __name__)
 @bp.route("/")
 @login_required
 def index() -> str:
-    """Render the homepage.
+    """Render the homepage with all discount codes.
 
     Returns:
-        Rendered homepage template.
+        Rendered homepage template with codes sorted by expiry date.
     """
-    return render_template("codes/index.html")
+    codes = DiscountCode.query.order_by(
+        DiscountCode.expiry_date.asc().nullslast()
+    ).all()
+    return render_template("codes/index.html", codes=codes, today=date.today())
 
 
 @bp.route("/codes/add", methods=["GET", "POST"])

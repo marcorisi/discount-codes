@@ -1,5 +1,7 @@
 """Tests for codes domain routes."""
 
+from datetime import date, timedelta
+
 from flask.testing import FlaskClient
 
 from app.codes.models import DiscountCode
@@ -22,6 +24,68 @@ def test_homepage_content_authenticated(authenticated_client: FlaskClient) -> No
     """Test homepage contains expected content when authenticated."""
     response = authenticated_client.get("/")
     assert b"Discount Code Manager" in response.data
+
+
+def test_homepage_shows_empty_state(authenticated_client: FlaskClient) -> None:
+    """Test homepage shows empty state when no codes exist."""
+    response = authenticated_client.get("/")
+    assert b"No discount codes yet" in response.data
+    assert b"Add your first code" in response.data
+
+
+def test_homepage_displays_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage displays discount codes."""
+    code = DiscountCode(code="TEST10", store_name="Test Store", discount_value="10%")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"TEST10" in response.data
+    assert b"Test Store" in response.data
+    assert b"10%" in response.data
+
+
+def test_homepage_codes_sorted_by_expiry(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage displays codes sorted by expiry date ascending."""
+    today = date.today()
+    code1 = DiscountCode(
+        code="LATER",
+        store_name="Later Store",
+        expiry_date=today + timedelta(days=30),
+    )
+    code2 = DiscountCode(
+        code="SOONER",
+        store_name="Sooner Store",
+        expiry_date=today + timedelta(days=10),
+    )
+    code3 = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    db.session.add_all([code1, code2, code3])
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    data = response.data.decode()
+
+    sooner_pos = data.find("SOONER")
+    later_pos = data.find("LATER")
+    noexpiry_pos = data.find("NOEXPIRY")
+
+    assert sooner_pos < later_pos < noexpiry_pos
+
+
+def test_homepage_shows_expired_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage shows expired codes with expired label."""
+    yesterday = date.today() - timedelta(days=1)
+    code = DiscountCode(
+        code="EXPIRED10",
+        store_name="Expired Store",
+        expiry_date=yesterday,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"EXPIRED10" in response.data
+    assert b"Expired" in response.data
 
 
 def test_add_code_page_requires_login(client: FlaskClient, db) -> None:
