@@ -3,6 +3,7 @@
 import click
 from flask import Flask
 from flask_login import LoginManager
+from flask_migrate import Migrate
 
 from app.config import config
 from app.models import User, db
@@ -10,6 +11,8 @@ from app.models import User, db
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Please log in to access this page."
+
+migrate = Migrate()
 
 
 @login_manager.user_loader
@@ -31,6 +34,7 @@ def create_app(config_name: str = "default") -> Flask:
     app.config.from_object(config[config_name])
 
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
 
     from app.routes import auth, main
