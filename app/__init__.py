@@ -1,9 +1,21 @@
 """Flask application factory."""
 
+import click
 from flask import Flask
+from flask_login import LoginManager
 
 from app.config import config
-from app.models import db
+from app.models import User, db
+
+login_manager = LoginManager()
+login_manager.login_view = "auth.login"
+login_manager.login_message = "Please log in to access this page."
+
+
+@login_manager.user_loader
+def load_user(user_id: str) -> User | None:
+    """Load user by ID for Flask-Login."""
+    return db.session.get(User, int(user_id))
 
 
 def create_app(config_name: str = "default") -> Flask:
@@ -19,10 +31,27 @@ def create_app(config_name: str = "default") -> Flask:
     app.config.from_object(config[config_name])
 
     db.init_app(app)
+    login_manager.init_app(app)
 
-    from app.routes import main
+    from app.routes import auth, main
 
     app.register_blueprint(main)
+    app.register_blueprint(auth)
+
+    @app.cli.command("create-user")
+    @click.argument("username")
+    @click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True)
+    def create_user(username: str, password: str) -> None:
+        """Create a new user."""
+        if User.query.filter_by(username=username).first():
+            click.echo(f"Error: User '{username}' already exists.")
+            return
+
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        click.echo(f"User '{username}' created successfully.")
 
     return app
 

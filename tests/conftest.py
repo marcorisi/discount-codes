@@ -5,7 +5,7 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app
-from app.models import db as _db
+from app.models import User, db as _db
 
 
 @pytest.fixture
@@ -48,3 +48,39 @@ def db(app: Flask):
         _db.create_all()
         yield _db
         _db.drop_all()
+
+
+@pytest.fixture
+def test_user(db) -> User:
+    """Create a test user.
+
+    Args:
+        db: Database fixture.
+
+    Returns:
+        Test user instance.
+    """
+    user = User(username="testuser")
+    user.set_password("testpassword")
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+@pytest.fixture
+def authenticated_client(client: FlaskClient, test_user: User) -> FlaskClient:
+    """Create an authenticated test client.
+
+    Args:
+        client: Flask test client.
+        test_user: Test user fixture.
+
+    Returns:
+        Authenticated Flask test client.
+    """
+    client.post(
+        "/auth/login",
+        data={"username": "testuser", "password": "testpassword"},
+        follow_redirects=True,
+    )
+    return client
