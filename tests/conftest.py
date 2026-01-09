@@ -5,7 +5,8 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app
-from app.models import User, db as _db
+from app.auth.models import User
+from app.extensions import db as _db
 
 
 @pytest.fixture
@@ -15,8 +16,7 @@ def app() -> Flask:
     Returns:
         Flask application configured for testing.
     """
-    app = create_app("testing")
-    return app
+    return create_app("testing")
 
 
 @pytest.fixture

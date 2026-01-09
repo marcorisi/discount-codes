@@ -2,22 +2,16 @@
 
 import click
 from flask import Flask
-from flask_login import LoginManager
-from flask_migrate import Migrate
 
 from app.config import config
-from app.models import User, db
-
-login_manager = LoginManager()
-login_manager.login_view = "auth.login"
-login_manager.login_message = "Please log in to access this page."
-
-migrate = Migrate()
+from app.extensions import db, login_manager, migrate
 
 
 @login_manager.user_loader
-def load_user(user_id: str) -> User | None:
+def load_user(user_id: str):
     """Load user by ID for Flask-Login."""
+    from app.auth.models import User
+
     return db.session.get(User, int(user_id))
 
 
@@ -37,10 +31,20 @@ def create_app(config_name: str = "default") -> Flask:
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    from app.routes import auth, main
+    from app.auth import bp as auth_bp
+    from app.codes import bp as codes_bp
 
-    app.register_blueprint(main)
-    app.register_blueprint(auth)
+    app.register_blueprint(codes_bp)
+    app.register_blueprint(auth_bp)
+
+    register_cli_commands(app)
+
+    return app
+
+
+def register_cli_commands(app: Flask) -> None:
+    """Register CLI commands."""
+    from app.auth.models import User
 
     @app.cli.command("create-user")
     @click.argument("username")
@@ -56,8 +60,6 @@ def create_app(config_name: str = "default") -> Flask:
         db.session.add(user)
         db.session.commit()
         click.echo(f"User '{username}' created successfully.")
-
-    return app
 
 
 def init_db(app: Flask) -> None:

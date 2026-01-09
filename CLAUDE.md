@@ -9,7 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pytest -v
 
 # Run a single test
-pytest tests/test_routes.py::test_login_with_valid_credentials -v
+pytest tests/auth/test_routes.py::test_login_with_valid_credentials -v
+
+# Run domain tests
+pytest tests/auth/ -v
+pytest tests/codes/ -v
 
 # Run the app
 flask run
@@ -24,32 +28,37 @@ flask create-user <username>
 
 ## Architecture
 
-Flask application using the app factory pattern with blueprints.
+Flask application using the app factory pattern with domain-based organization.
 
-**App Factory** (`app/__init__.py`): Creates the Flask app, initializes extensions (SQLAlchemy, Flask-Login, Flask-Migrate), and registers blueprints. The `create_app(config_name)` function accepts "development", "testing", or "production".
+**Extensions** (`app/extensions.py`): Shared Flask extensions (SQLAlchemy, Flask-Login, Flask-Migrate) initialized here to avoid circular imports.
 
-**Blueprints** (`app/routes.py`):
-- `main` - Protected routes (homepage requires login)
-- `auth` - Authentication routes (`/auth/login`, `/auth/logout`)
+**App Factory** (`app/__init__.py`): Creates the Flask app, initializes extensions, and registers domain blueprints. The `create_app(config_name)` function accepts "development", "testing", or "production".
 
-**Models** (`app/models.py`):
-- `User` - Authentication with password hashing via werkzeug
-- `DiscountCode` - Discount code storage
+**Domains**: Each domain has its own models, routes, and templates:
 
-**Authentication**: Flask-Login handles sessions. All routes under `main` blueprint use `@login_required`. Users are created via CLI command, not web registration.
+- `app/auth/` - Authentication domain
+  - `models.py` - User model with password hashing
+  - `routes.py` - Login/logout routes (`/auth/login`, `/auth/logout`)
 
-**Frontend**: Jinja2 templates with Tailwind CSS (CDN) and htmx for interactivity. Base template includes nav with logout when authenticated.
-The app must be mobile-first.
+- `app/codes/` - Discount codes domain
+  - `models.py` - DiscountCode model
+  - `routes.py` - CRUD routes (`/`, `/codes/add`)
 
-**Testing**: pytest with fixtures in `tests/conftest.py`. Uses in-memory SQLite. Key fixtures: `db`, `test_user`, `authenticated_client`.
+**Templates**: Organized by domain in `app/templates/`:
+- `base.html` - Shared layout
+- `auth/` - Auth templates
+- `codes/` - Codes templates with `partials/` for HTMX responses
+
+**Testing**: Tests mirror the domain structure in `tests/auth/` and `tests/codes/`. Shared fixtures in `tests/conftest.py`.
 
 ## Style
 - Use type hints
 - Follow PEP 8
 - Include docstrings for functions
 - Keep it minimal and clean
+- Mobile-first frontend design
 
 ## Workflow
-- Be sure to typecheck when you’re done making a series of code changes
+- Be sure to typecheck when you're done making a series of code changes
 - Prefer running single tests, and not the whole test suite, for performance
 - Update the README.md file for any relevant changes.
