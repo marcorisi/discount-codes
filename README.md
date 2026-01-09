@@ -71,19 +71,43 @@ pytest -v
 ```
 app/
 ├── __init__.py          # Flask app factory
-├── models.py            # SQLAlchemy models
-├── routes.py            # Blueprint with routes
 ├── config.py            # Configuration
+├── extensions.py        # Shared Flask extensions
+├── auth/                # Authentication domain
+│   ├── __init__.py
+│   ├── models.py        # User model
+│   └── routes.py        # Login/logout routes
+├── codes/               # Discount codes domain
+│   ├── __init__.py
+│   ├── models.py        # DiscountCode model
+│   └── routes.py        # CRUD routes
 ├── static/
 │   └── css/
 │       └── style.css    # Custom CSS
 └── templates/
     ├── base.html        # Base template
-    └── index.html       # Homepage
+    ├── auth/
+    │   └── login.html   # Login page
+    └── codes/
+        ├── index.html   # Codes list
+        ├── add.html     # Add code form
+        ├── edit.html    # Edit code form
+        └── partials/    # HTMX partials
+            ├── add_success.html
+            └── edit_success.html
 
 tests/
 ├── __init__.py
 ├── conftest.py          # Pytest fixtures
-├── test_models.py       # Model tests
-└── test_routes.py       # Route tests
+├── auth/                # Auth domain tests
+│   ├── __init__.py
+│   ├── test_models.py
+│   └── test_routes.py
+└── codes/               # Codes domain tests
+    ├── __init__.py
+    ├── test_models.py
+    └── test_routes.py
+
+migrations/              # Flask-Migrate migrations
+└── versions/
 ```
