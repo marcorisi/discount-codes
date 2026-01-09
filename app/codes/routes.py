@@ -120,3 +120,22 @@ def edit_code(code_id: int) -> str | Response:
         return redirect(url_for("codes.index"))
 
     return render_template("codes/edit.html", code=discount_code)
+
+
+@bp.route("/codes/<int:code_id>/delete", methods=["POST"])
+@login_required
+def delete_code(code_id: int) -> Response:
+    """Handle deleting a discount code.
+
+    Args:
+        code_id: The ID of the discount code to delete.
+
+    Returns:
+        Redirect to homepage on success.
+    """
+    discount_code = db.get_or_404(DiscountCode, code_id)
+    db.session.delete(discount_code)
+    db.session.commit()
+
+    flash("Discount code deleted successfully!", "success")
+    return redirect(url_for("codes.index"))

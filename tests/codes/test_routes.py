@@ -294,3 +294,48 @@ def test_homepage_shows_edit_icon(authenticated_client: FlaskClient, db) -> None
 
     response = authenticated_client.get("/")
     assert f"/codes/{code.id}/edit".encode() in response.data
+
+
+def test_delete_code_requires_login(client: FlaskClient, db) -> None:
+    """Test delete code redirects to login when not authenticated."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = client.post(f"/codes/{code.id}/delete")
+    assert response.status_code == 302
+    assert "/auth/login" in response.headers["Location"]
+
+
+def test_delete_code_removes_code(authenticated_client: FlaskClient, db) -> None:
+    """Test deleting a discount code removes it from the database."""
+    code = DiscountCode(code="DELETE10", store_name="Delete Store")
+    db.session.add(code)
+    db.session.commit()
+    code_id = code.id
+
+    response = authenticated_client.post(
+        f"/codes/{code_id}/delete",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Discount code deleted successfully" in response.data
+
+    deleted_code = db.session.get(DiscountCode, code_id)
+    assert deleted_code is None
+
+
+def test_delete_code_404_for_nonexistent(authenticated_client: FlaskClient) -> None:
+    """Test delete code returns 404 for nonexistent code."""
+    response = authenticated_client.post("/codes/99999/delete")
+    assert response.status_code == 404
+
+
+def test_homepage_shows_delete_icon(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage displays delete icon for each code."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/codes/{code.id}/delete".encode() in response.data
