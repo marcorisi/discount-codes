@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Discount Code - Discount Code Manager{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-lg">
+    <h1 class="text-2xl font-bold mb-6">Edit Discount Code</h1>
+
+    <form id="edit-code-form" method="POST" class="space-y-4"
+          hx-post="{{ url_for('codes.edit_code', code_id=code.id) }}"
+          hx-target="#form-result"
+          hx-swap="innerHTML">
+
+        <div>
+            <label for="code" class="block text-sm font-medium text-gray-700 mb-1">
+                Code <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="code" name="code" required
+                   value="{{ code.code }}"
+                   class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                   placeholder="e.g., SAVE20">
+        </div>
+
+        <div>
+            <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
+                Store Name <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="store_name" name="store_name" required
+                   value="{{ code.store_name }}"
+                   class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                   placeholder="e.g., Amazon">
+        </div>
+
+        <div>
+            <label for="discount_value" class="block text-sm font-medium text-gray-700 mb-1">
+                Discount Value
+            </label>
+            <input type="text" id="discount_value" name="discount_value"
+                   value="{{ code.discount_value or '' }}"
+                   class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                   placeholder="e.g., 20% or $10">
+        </div>
+
+        <div>
+            <label for="expiry_date" class="block text-sm font-medium text-gray-700 mb-1">
+                Expiry Date
+            </label>
+            <input type="date" id="expiry_date" name="expiry_date"
+                   value="{{ code.expiry_date.strftime('%Y-%m-%d') if code.expiry_date else '' }}"
+                   class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base">
+        </div>
+
+        <div>
+            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                Notes
+            </label>
+            <textarea id="notes" name="notes" rows="3"
+                      class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base resize-none"
+                      placeholder="Any additional details...">{{ code.notes or '' }}</textarea>
+        </div>
+
+        <div class="pt-2">
+            <button type="submit"
+                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-base font-medium">
+                Save Changes
+            </button>
+        </div>
+    </form>
+
+    <div id="form-result" class="mt-4"></div>
+
+    <div class="mt-6">
+        <a href="{{ url_for('codes.index') }}" class="text-blue-600 hover:text-blue-800">
+            &larr; Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

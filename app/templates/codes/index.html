@@ -19,9 +19,18 @@
                     <h2 class="text-lg font-bold text-gray-900">{{ code.store_name }}</h2>
                     <code class="text-sm bg-gray-100 px-2 py-1 rounded font-mono">{{ code.code }}</code>
                 </div>
-                {% if code.discount_value %}
-                <span class="text-lg font-bold text-green-600">{{ code.discount_value }}</span>
-                {% endif %}
+                <div class="flex items-center gap-2">
+                    {% if code.discount_value %}
+                    <span class="text-lg font-bold text-green-600">{{ code.discount_value }}</span>
+                    {% endif %}
+                    <a href="{{ url_for('codes.edit_code', code_id=code.id) }}"
+                       class="text-gray-400 hover:text-blue-600 p-1"
+                       title="Edit code">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </a>
+                </div>
             </div>
 
             {% if code.notes %}

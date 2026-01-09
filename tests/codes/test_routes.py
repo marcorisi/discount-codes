@@ -172,3 +172,125 @@ def test_add_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
     assert response.status_code == 200
     assert b"Discount code added successfully" in response.data
     assert b"Add Another" in response.data
+
+
+def test_edit_code_page_requires_login(client: FlaskClient, db) -> None:
+    """Test edit code page redirects to login when not authenticated."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = client.get(f"/codes/{code.id}/edit")
+    assert response.status_code == 302
+    assert "/auth/login" in response.headers["Location"]
+
+
+def test_edit_code_page_loads(authenticated_client: FlaskClient, db) -> None:
+    """Test edit code page loads with prefilled values."""
+    code = DiscountCode(
+        code="EDIT10",
+        store_name="Edit Store",
+        discount_value="10%",
+        notes="Test notes",
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get(f"/codes/{code.id}/edit")
+    assert response.status_code == 200
+    assert b"Edit Discount Code" in response.data
+    assert b"EDIT10" in response.data
+    assert b"Edit Store" in response.data
+    assert b"10%" in response.data
+    assert b"Test notes" in response.data
+
+
+def test_edit_code_page_404_for_nonexistent(authenticated_client: FlaskClient) -> None:
+    """Test edit code page returns 404 for nonexistent code."""
+    response = authenticated_client.get("/codes/99999/edit")
+    assert response.status_code == 404
+
+
+def test_edit_code_updates_fields(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a discount code updates all fields."""
+    code = DiscountCode(code="OLD10", store_name="Old Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={
+            "code": "NEW20",
+            "store_name": "New Store",
+            "discount_value": "20%",
+            "expiry_date": "2025-12-31",
+            "notes": "Updated notes",
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Discount code updated successfully" in response.data
+
+    db.session.refresh(code)
+    assert code.code == "NEW20"
+    assert code.store_name == "New Store"
+    assert code.discount_value == "20%"
+    assert code.notes == "Updated notes"
+
+
+def test_edit_code_missing_required_fields(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a discount code with missing required fields."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={"code": "", "store_name": ""},
+        follow_redirects=True,
+    )
+    assert b"Code and store name are required" in response.data
+
+
+def test_edit_code_invalid_date(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a discount code with invalid date format."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={
+            "code": "TEST10",
+            "store_name": "Test Store",
+            "expiry_date": "invalid-date",
+        },
+        follow_redirects=True,
+    )
+    assert b"Invalid date format" in response.data
+
+
+def test_edit_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a discount code via HTMX returns partial."""
+    code = DiscountCode(code="HTMX10", store_name="HTMX Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={"code": "HTMXUPDATED", "store_name": "Updated HTMX Store"},
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    assert b"Discount code updated successfully" in response.data
+    assert b"Back to Home" in response.data
+
+
+def test_homepage_shows_edit_icon(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage displays edit icon for each code."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/codes/{code.id}/edit".encode() in response.data

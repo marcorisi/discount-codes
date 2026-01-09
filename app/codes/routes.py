@@ -71,3 +71,52 @@ def add_code() -> str | Response:
         return redirect(url_for("codes.index"))
 
     return render_template("codes/add.html")
+
+
+@bp.route("/codes/<int:code_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_code(code_id: int) -> str | Response:
+    """Handle editing an existing discount code.
+
+    Args:
+        code_id: The ID of the discount code to edit.
+
+    Returns:
+        Rendered edit code template or redirect on success.
+    """
+    discount_code = db.get_or_404(DiscountCode, code_id)
+
+    if request.method == "POST":
+        code = request.form.get("code", "").strip()
+        store_name = request.form.get("store_name", "").strip()
+        discount_value = request.form.get("discount_value", "").strip() or None
+        expiry_date_str = request.form.get("expiry_date", "").strip()
+        notes = request.form.get("notes", "").strip() or None
+
+        if not code or not store_name:
+            flash("Code and store name are required.", "error")
+            return render_template("codes/edit.html", code=discount_code)
+
+        expiry_date = None
+        if expiry_date_str:
+            try:
+                expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                flash("Invalid date format.", "error")
+                return render_template("codes/edit.html", code=discount_code)
+
+        discount_code.code = code
+        discount_code.store_name = store_name
+        discount_code.discount_value = discount_value
+        discount_code.expiry_date = expiry_date
+        discount_code.notes = notes
+        db.session.commit()
+
+        if request.headers.get("HX-Request"):
+            flash("Discount code updated successfully!", "success")
+            return render_template("codes/partials/edit_success.html", code=discount_code)
+
+        flash("Discount code updated successfully!", "success")
+        return redirect(url_for("codes.index"))
+
+    return render_template("codes/edit.html", code=discount_code)
