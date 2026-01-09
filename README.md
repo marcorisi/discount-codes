@@ -1,6 +1,11 @@
-# Discount Code Manager
+```
+This is a Learning Project 🧪👨‍🔬🎢
 
-> **Learning Project**: Built to explore Agentic Development and experiment with [Claude Code](https://claude.ai/code).
+Built to explore Agentic Development 
+and experiment with Claude Code.
+```
+
+# Discount Code Manager
 
 A Flask web application for managing discount codes.
 
