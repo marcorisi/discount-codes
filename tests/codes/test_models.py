@@ -58,3 +58,17 @@ def test_discount_code_repr(db) -> None:
         store_name="Repr Store",
     )
     assert repr(code) == "<DiscountCode REPR10 for Repr Store>"
+
+
+def test_discount_code_with_store_url(db) -> None:
+    """Test discount code with store URL."""
+    code = DiscountCode(
+        code="URL20",
+        store_name="URL Store",
+        store_url="https://example.com",
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    saved_code = db.session.get(DiscountCode, code.id)
+    assert saved_code.store_url == "https://example.com"
