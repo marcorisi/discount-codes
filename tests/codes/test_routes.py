@@ -127,7 +127,7 @@ def test_add_code_with_all_fields(authenticated_client: FlaskClient, db) -> None
             "discount_value": "20%",
             "expiry_date": "2025-12-31",
             "notes": "Test notes",
-            "url": "https://example.com/promo",
+            "store_url": "https://example.com",
         },
         follow_redirects=True,
     )
@@ -137,7 +137,7 @@ def test_add_code_with_all_fields(authenticated_client: FlaskClient, db) -> None
     assert code is not None
     assert code.discount_value == "20%"
     assert code.notes == "Test notes"
-    assert code.url == "https://example.com/promo"
+    assert code.store_url == "https://example.com"
 
 
 def test_add_code_missing_required_fields(authenticated_client: FlaskClient) -> None:
@@ -227,7 +227,7 @@ def test_edit_code_updates_fields(authenticated_client: FlaskClient, db) -> None
             "discount_value": "20%",
             "expiry_date": "2025-12-31",
             "notes": "Updated notes",
-            "url": "https://example.com/updated",
+            "store_url": "https://example.com",
         },
         follow_redirects=True,
     )
@@ -239,7 +239,7 @@ def test_edit_code_updates_fields(authenticated_client: FlaskClient, db) -> None
     assert code.store_name == "New Store"
     assert code.discount_value == "20%"
     assert code.notes == "Updated notes"
-    assert code.url == "https://example.com/updated"
+    assert code.store_url == "https://example.com"
 
 
 def test_edit_code_missing_required_fields(authenticated_client: FlaskClient, db) -> None:
@@ -345,16 +345,16 @@ def test_homepage_shows_delete_icon(authenticated_client: FlaskClient, db) -> No
     assert f"/codes/{code.id}/delete".encode() in response.data
 
 
-def test_homepage_displays_url(authenticated_client: FlaskClient, db) -> None:
-    """Test homepage displays URL as a link when present."""
+def test_homepage_displays_store_url(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage displays store URL as a link when present."""
     code = DiscountCode(
         code="URLTEST",
         store_name="URL Store",
-        url="https://example.com/promo",
+        store_url="https://example.com",
     )
     db.session.add(code)
     db.session.commit()
 
     response = authenticated_client.get("/")
-    assert b"https://example.com/promo" in response.data
-    assert b"View Offer" in response.data
+    assert b"https://example.com" in response.data
+    assert b"Visit Store" in response.data
