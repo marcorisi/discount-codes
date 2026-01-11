@@ -21,6 +21,7 @@ class DiscountCode(db.Model):
     discount_value: str | None = db.Column(db.String(50))
     expiry_date: date | None = db.Column(db.Date)
     notes: str | None = db.Column(db.Text)
+    url: str | None = db.Column(db.String(500))
     is_used: bool = db.Column(db.Boolean, default=False)
     created_at: datetime = db.Column(db.DateTime, default=utcnow)
 

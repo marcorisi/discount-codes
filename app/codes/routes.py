@@ -40,6 +40,7 @@ def add_code() -> str | Response:
         discount_value = request.form.get("discount_value", "").strip() or None
         expiry_date_str = request.form.get("expiry_date", "").strip()
         notes = request.form.get("notes", "").strip() or None
+        url = request.form.get("url", "").strip() or None
 
         if not code or not store_name:
             flash("Code and store name are required.", "error")
@@ -59,6 +60,7 @@ def add_code() -> str | Response:
             discount_value=discount_value,
             expiry_date=expiry_date,
             notes=notes,
+            url=url,
         )
         db.session.add(discount_code)
         db.session.commit()
@@ -92,6 +94,7 @@ def edit_code(code_id: int) -> str | Response:
         discount_value = request.form.get("discount_value", "").strip() or None
         expiry_date_str = request.form.get("expiry_date", "").strip()
         notes = request.form.get("notes", "").strip() or None
+        url = request.form.get("url", "").strip() or None
 
         if not code or not store_name:
             flash("Code and store name are required.", "error")
@@ -110,6 +113,7 @@ def edit_code(code_id: int) -> str | Response:
         discount_code.discount_value = discount_value
         discount_code.expiry_date = expiry_date
         discount_code.notes = notes
+        discount_code.url = url
         db.session.commit()
 
         if request.headers.get("HX-Request"):
