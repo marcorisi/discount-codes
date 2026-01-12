@@ -4,7 +4,13 @@ from datetime import date, timedelta
 
 from flask.testing import FlaskClient
 
+from app.auth.models import User
 from app.codes.models import DiscountCode
+
+
+def _get_test_user(db) -> User:
+    """Get the test user from the database."""
+    return User.query.filter_by(username="testuser").first()
 
 
 def test_homepage_requires_login(client: FlaskClient, db) -> None:
@@ -35,7 +41,13 @@ def test_homepage_shows_empty_state(authenticated_client: FlaskClient) -> None:
 
 def test_homepage_displays_codes(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays discount codes."""
-    code = DiscountCode(code="TEST10", store_name="Test Store", discount_value="10%")
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="TEST10",
+        store_name="Test Store",
+        discount_value="10%",
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -47,18 +59,25 @@ def test_homepage_displays_codes(authenticated_client: FlaskClient, db) -> None:
 
 def test_homepage_codes_sorted_by_expiry(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays codes sorted by expiry date ascending."""
+    user = _get_test_user(db)
     today = date.today()
     code1 = DiscountCode(
         code="LATER",
         store_name="Later Store",
         expiry_date=today + timedelta(days=30),
+        user_id=user.id,
     )
     code2 = DiscountCode(
         code="SOONER",
         store_name="Sooner Store",
         expiry_date=today + timedelta(days=10),
+        user_id=user.id,
     )
-    code3 = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    code3 = DiscountCode(
+        code="NOEXPIRY",
+        store_name="No Expiry Store",
+        user_id=user.id,
+    )
     db.session.add_all([code1, code2, code3])
     db.session.commit()
 
@@ -74,11 +93,13 @@ def test_homepage_codes_sorted_by_expiry(authenticated_client: FlaskClient, db) 
 
 def test_homepage_shows_expired_codes(authenticated_client: FlaskClient, db) -> None:
     """Test homepage shows expired codes with expired label."""
+    user = _get_test_user(db)
     yesterday = date.today() - timedelta(days=1)
     code = DiscountCode(
         code="EXPIRED10",
         store_name="Expired Store",
         expiry_date=yesterday,
+        user_id=user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -176,9 +197,9 @@ def test_add_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
     assert b"Add Another" in response.data
 
 
-def test_edit_code_page_requires_login(client: FlaskClient, db) -> None:
+def test_edit_code_page_requires_login(client: FlaskClient, db, test_user: User) -> None:
     """Test edit code page redirects to login when not authenticated."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -189,11 +210,13 @@ def test_edit_code_page_requires_login(client: FlaskClient, db) -> None:
 
 def test_edit_code_page_loads(authenticated_client: FlaskClient, db) -> None:
     """Test edit code page loads with prefilled values."""
+    user = _get_test_user(db)
     code = DiscountCode(
         code="EDIT10",
         store_name="Edit Store",
         discount_value="10%",
         notes="Test notes",
+        user_id=user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -215,7 +238,8 @@ def test_edit_code_page_404_for_nonexistent(authenticated_client: FlaskClient) -
 
 def test_edit_code_updates_fields(authenticated_client: FlaskClient, db) -> None:
     """Test editing a discount code updates all fields."""
-    code = DiscountCode(code="OLD10", store_name="Old Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="OLD10", store_name="Old Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -244,7 +268,8 @@ def test_edit_code_updates_fields(authenticated_client: FlaskClient, db) -> None
 
 def test_edit_code_missing_required_fields(authenticated_client: FlaskClient, db) -> None:
     """Test editing a discount code with missing required fields."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -258,7 +283,8 @@ def test_edit_code_missing_required_fields(authenticated_client: FlaskClient, db
 
 def test_edit_code_invalid_date(authenticated_client: FlaskClient, db) -> None:
     """Test editing a discount code with invalid date format."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -276,7 +302,8 @@ def test_edit_code_invalid_date(authenticated_client: FlaskClient, db) -> None:
 
 def test_edit_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
     """Test editing a discount code via HTMX returns partial."""
-    code = DiscountCode(code="HTMX10", store_name="HTMX Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="HTMX10", store_name="HTMX Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -292,7 +319,8 @@ def test_edit_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
 
 def test_homepage_shows_edit_icon(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays edit icon for each code."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -300,9 +328,9 @@ def test_homepage_shows_edit_icon(authenticated_client: FlaskClient, db) -> None
     assert f"/codes/{code.id}/edit".encode() in response.data
 
 
-def test_delete_code_requires_login(client: FlaskClient, db) -> None:
+def test_delete_code_requires_login(client: FlaskClient, db, test_user: User) -> None:
     """Test delete code redirects to login when not authenticated."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -313,7 +341,8 @@ def test_delete_code_requires_login(client: FlaskClient, db) -> None:
 
 def test_delete_code_removes_code(authenticated_client: FlaskClient, db) -> None:
     """Test deleting a discount code removes it from the database."""
-    code = DiscountCode(code="DELETE10", store_name="Delete Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="DELETE10", store_name="Delete Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
     code_id = code.id
@@ -337,7 +366,8 @@ def test_delete_code_404_for_nonexistent(authenticated_client: FlaskClient) -> N
 
 def test_homepage_shows_delete_icon(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays delete icon for each code."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -347,10 +377,12 @@ def test_homepage_shows_delete_icon(authenticated_client: FlaskClient, db) -> No
 
 def test_homepage_displays_store_url(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays store URL as a link when present."""
+    user = _get_test_user(db)
     code = DiscountCode(
         code="URLTEST",
         store_name="URL Store",
         store_url="https://example.com",
+        user_id=user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -373,8 +405,9 @@ def test_homepage_displays_search_form(authenticated_client: FlaskClient) -> Non
 
 def test_search_by_store_name(authenticated_client: FlaskClient, db) -> None:
     """Test searching discount codes by store name."""
-    code1 = DiscountCode(code="CODE1", store_name="Amazon Store")
-    code2 = DiscountCode(code="CODE2", store_name="Target Store")
+    user = _get_test_user(db)
+    code1 = DiscountCode(code="CODE1", store_name="Amazon Store", user_id=user.id)
+    code2 = DiscountCode(code="CODE2", store_name="Target Store", user_id=user.id)
     db.session.add_all([code1, code2])
     db.session.commit()
 
@@ -386,11 +419,18 @@ def test_search_by_store_name(authenticated_client: FlaskClient, db) -> None:
 
 def test_search_by_store_url(authenticated_client: FlaskClient, db) -> None:
     """Test searching discount codes by store URL."""
+    user = _get_test_user(db)
     code1 = DiscountCode(
-        code="CODE1", store_name="Store 1", store_url="https://amazon.com"
+        code="CODE1",
+        store_name="Store 1",
+        store_url="https://amazon.com",
+        user_id=user.id,
     )
     code2 = DiscountCode(
-        code="CODE2", store_name="Store 2", store_url="https://target.com"
+        code="CODE2",
+        store_name="Store 2",
+        store_url="https://target.com",
+        user_id=user.id,
     )
     db.session.add_all([code1, code2])
     db.session.commit()
@@ -402,7 +442,8 @@ def test_search_by_store_url(authenticated_client: FlaskClient, db) -> None:
 
 def test_search_case_insensitive(authenticated_client: FlaskClient, db) -> None:
     """Test search is case insensitive."""
-    code = DiscountCode(code="CODE1", store_name="Amazon Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="CODE1", store_name="Amazon Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -413,18 +454,25 @@ def test_search_case_insensitive(authenticated_client: FlaskClient, db) -> None:
 
 def test_filter_active_codes(authenticated_client: FlaskClient, db) -> None:
     """Test filtering to show only active (non-expired) codes."""
+    user = _get_test_user(db)
     today = date.today()
     active_code = DiscountCode(
         code="ACTIVE",
         store_name="Active Store",
         expiry_date=today + timedelta(days=10),
+        user_id=user.id,
     )
     expired_code = DiscountCode(
         code="EXPIRED",
         store_name="Expired Store",
         expiry_date=today - timedelta(days=1),
+        user_id=user.id,
     )
-    no_expiry_code = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    no_expiry_code = DiscountCode(
+        code="NOEXPIRY",
+        store_name="No Expiry Store",
+        user_id=user.id,
+    )
     db.session.add_all([active_code, expired_code, no_expiry_code])
     db.session.commit()
 
@@ -436,18 +484,25 @@ def test_filter_active_codes(authenticated_client: FlaskClient, db) -> None:
 
 def test_filter_expired_codes(authenticated_client: FlaskClient, db) -> None:
     """Test filtering to show only expired codes."""
+    user = _get_test_user(db)
     today = date.today()
     active_code = DiscountCode(
         code="ACTIVE",
         store_name="Active Store",
         expiry_date=today + timedelta(days=10),
+        user_id=user.id,
     )
     expired_code = DiscountCode(
         code="EXPIRED",
         store_name="Expired Store",
         expiry_date=today - timedelta(days=1),
+        user_id=user.id,
     )
-    no_expiry_code = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    no_expiry_code = DiscountCode(
+        code="NOEXPIRY",
+        store_name="No Expiry Store",
+        user_id=user.id,
+    )
     db.session.add_all([active_code, expired_code, no_expiry_code])
     db.session.commit()
 
@@ -459,21 +514,25 @@ def test_filter_expired_codes(authenticated_client: FlaskClient, db) -> None:
 
 def test_search_and_filter_combined(authenticated_client: FlaskClient, db) -> None:
     """Test combining search and expiration filter."""
+    user = _get_test_user(db)
     today = date.today()
     code1 = DiscountCode(
         code="AMAZON10",
         store_name="Amazon Store",
         expiry_date=today + timedelta(days=10),
+        user_id=user.id,
     )
     code2 = DiscountCode(
         code="AMAZON20",
         store_name="Amazon Outlet",
         expiry_date=today - timedelta(days=1),
+        user_id=user.id,
     )
     code3 = DiscountCode(
         code="TARGET10",
         store_name="Target Store",
         expiry_date=today + timedelta(days=10),
+        user_id=user.id,
     )
     db.session.add_all([code1, code2, code3])
     db.session.commit()
@@ -486,7 +545,8 @@ def test_search_and_filter_combined(authenticated_client: FlaskClient, db) -> No
 
 def test_search_no_results_message(authenticated_client: FlaskClient, db) -> None:
     """Test empty state message when search returns no results."""
-    code = DiscountCode(code="CODE1", store_name="Amazon Store")
+    user = _get_test_user(db)
+    code = DiscountCode(code="CODE1", store_name="Amazon Store", user_id=user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -529,9 +589,9 @@ def test_clear_button_hidden_without_filters(authenticated_client: FlaskClient) 
 # Mark as used tests
 
 
-def test_mark_used_requires_login(client: FlaskClient, db) -> None:
+def test_mark_used_requires_login(client: FlaskClient, db, test_user: User) -> None:
     """Test mark used redirects to login when not authenticated."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -542,7 +602,13 @@ def test_mark_used_requires_login(client: FlaskClient, db) -> None:
 
 def test_mark_used_marks_code(authenticated_client: FlaskClient, db) -> None:
     """Test marking a discount code as used updates the database."""
-    code = DiscountCode(code="MARKME", store_name="Mark Store", is_used=False)
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="MARKME",
+        store_name="Mark Store",
+        is_used=False,
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
     code_id = code.id
@@ -568,7 +634,13 @@ def test_homepage_shows_mark_used_icon_for_unused(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test homepage displays mark as used icon for unused codes."""
-    code = DiscountCode(code="UNUSED", store_name="Unused Store", is_used=False)
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="UNUSED",
+        store_name="Unused Store",
+        is_used=False,
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -580,9 +652,68 @@ def test_homepage_hides_mark_used_icon_for_used(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test homepage hides mark as used icon for already used codes."""
-    code = DiscountCode(code="USED", store_name="Used Store", is_used=True)
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="USED",
+        store_name="Used Store",
+        is_used=True,
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
     response = authenticated_client.get("/")
     assert f"/codes/{code.id}/mark-used".encode() not in response.data
+
+
+def test_add_code_sets_user_id(authenticated_client: FlaskClient, db) -> None:
+    """Test adding a code sets the user_id to the current user."""
+    response = authenticated_client.post(
+        "/codes/add",
+        data={"code": "USER10", "store_name": "User Store"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    code = DiscountCode.query.filter_by(code="USER10").first()
+    assert code is not None
+    assert code.user_id is not None
+    assert code.user is not None
+    assert code.user.username == "testuser"
+
+
+def test_edit_code_updates_user_id(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a code updates the user_id to the current user."""
+    user = _get_test_user(db)
+    # Create a code with user_id (required now)
+    code = DiscountCode(code="TOEDIT", store_name="To Edit Store", user_id=user.id)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={"code": "EDITED", "store_name": "Edited Store"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    db.session.refresh(code)
+    assert code.user_id == user.id
+    assert code.user.username == "testuser"
+
+
+def test_homepage_displays_edited_by_username(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage displays 'edited by username' for codes with user_id."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="SHOWUSER",
+        store_name="Show User Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"edited by testuser" in response.data

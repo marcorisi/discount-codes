@@ -3,7 +3,7 @@
 from datetime import date, datetime
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 from werkzeug.wrappers import Response
 
 from app.codes.models import DiscountCode
@@ -97,6 +97,7 @@ def add_code() -> str | Response:
             expiry_date=expiry_date,
             notes=notes,
             store_url=store_url,
+            user_id=current_user.id,
         )
         db.session.add(discount_code)
         db.session.commit()
@@ -152,6 +153,7 @@ def edit_code(code_id: int) -> str | Response:
         discount_code.notes = notes
         discount_code.store_url = store_url
         discount_code.is_used = is_used
+        discount_code.user_id = current_user.id
         db.session.commit()
 
         if request.headers.get("HX-Request"):

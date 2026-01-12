@@ -4,17 +4,24 @@ from datetime import date, datetime, timedelta
 
 from flask.testing import FlaskClient
 
+from app.auth.models import User
 from app.codes.models import DiscountCode
 from app.shares.models import Share
 
 
-def test_view_share_valid_token(client: FlaskClient, db) -> None:
+def _get_test_user(db) -> User:
+    """Get the test user from the database."""
+    return User.query.filter_by(username="testuser").first()
+
+
+def test_view_share_valid_token(client: FlaskClient, db, test_user: User) -> None:
     """Test viewing a share with valid token shows discount code."""
     code = DiscountCode(
         code="SHARE10",
         store_name="Share Store",
         discount_value="10%",
         notes="Test notes",
+        user_id=test_user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -31,9 +38,13 @@ def test_view_share_valid_token(client: FlaskClient, db) -> None:
     assert b"Test notes" in response.data
 
 
-def test_view_share_no_auth_required(client: FlaskClient, db) -> None:
+def test_view_share_no_auth_required(client: FlaskClient, db, test_user: User) -> None:
     """Test viewing a share does not require authentication."""
-    code = DiscountCode(code="PUBLIC10", store_name="Public Store")
+    code = DiscountCode(
+        code="PUBLIC10",
+        store_name="Public Store",
+        user_id=test_user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -47,9 +58,15 @@ def test_view_share_no_auth_required(client: FlaskClient, db) -> None:
     assert b"Public Store" in response.data
 
 
-def test_view_share_expired_shows_message(client: FlaskClient, db) -> None:
+def test_view_share_expired_shows_message(
+    client: FlaskClient, db, test_user: User
+) -> None:
     """Test viewing an expired share shows expired message."""
-    code = DiscountCode(code="EXPIRED10", store_name="Expired Store")
+    code = DiscountCode(
+        code="EXPIRED10",
+        store_name="Expired Store",
+        user_id=test_user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -72,12 +89,13 @@ def test_view_share_invalid_token_404(client: FlaskClient, db) -> None:
     assert response.status_code == 404
 
 
-def test_view_share_shows_store_url(client: FlaskClient, db) -> None:
+def test_view_share_shows_store_url(client: FlaskClient, db, test_user: User) -> None:
     """Test share view shows store URL when present."""
     code = DiscountCode(
         code="URL10",
         store_name="URL Store",
         store_url="https://example.com",
+        user_id=test_user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -92,9 +110,13 @@ def test_view_share_shows_store_url(client: FlaskClient, db) -> None:
     assert b"Visit Store" in response.data
 
 
-def test_create_share_requires_login(client: FlaskClient, db) -> None:
+def test_create_share_requires_login(client: FlaskClient, db, test_user: User) -> None:
     """Test creating a share redirects to login when not authenticated."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(
+        code="TEST10",
+        store_name="Test Store",
+        user_id=test_user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -105,7 +127,12 @@ def test_create_share_requires_login(client: FlaskClient, db) -> None:
 
 def test_create_share_creates_share(authenticated_client: FlaskClient, db) -> None:
     """Test creating a share creates a new share record."""
-    code = DiscountCode(code="CREATE10", store_name="Create Store")
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="CREATE10",
+        store_name="Create Store",
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -124,7 +151,12 @@ def test_create_share_redirects_to_share_view(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test creating a share redirects to the share view page."""
-    code = DiscountCode(code="REDIRECT10", store_name="Redirect Store")
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="REDIRECT10",
+        store_name="Redirect Store",
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -147,7 +179,12 @@ def test_create_share_404_for_nonexistent_code(
 
 def test_homepage_shows_share_icon(authenticated_client: FlaskClient, db) -> None:
     """Test homepage displays share icon for shareable codes."""
-    code = DiscountCode(code="ICON10", store_name="Icon Store")
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="ICON10",
+        store_name="Icon Store",
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -159,7 +196,13 @@ def test_create_share_400_for_used_code(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test creating a share for used code returns 400."""
-    code = DiscountCode(code="USED10", store_name="Used Store", is_used=True)
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="USED10",
+        store_name="Used Store",
+        is_used=True,
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -171,10 +214,12 @@ def test_create_share_400_for_expired_code(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test creating a share for expired code returns 400."""
+    user = _get_test_user(db)
     code = DiscountCode(
         code="EXPIRED10",
         store_name="Expired Store",
         expiry_date=date.today() - timedelta(days=1),
+        user_id=user.id,
     )
     db.session.add(code)
     db.session.commit()
@@ -187,7 +232,13 @@ def test_homepage_hides_share_icon_for_used_code(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test homepage hides share icon for used codes."""
-    code = DiscountCode(code="USED10", store_name="Used Store", is_used=True)
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="USED10",
+        store_name="Used Store",
+        is_used=True,
+        user_id=user.id,
+    )
     db.session.add(code)
     db.session.commit()
 
@@ -199,10 +250,12 @@ def test_homepage_hides_share_icon_for_expired_code(
     authenticated_client: FlaskClient, db
 ) -> None:
     """Test homepage hides share icon for expired codes."""
+    user = _get_test_user(db)
     code = DiscountCode(
         code="EXPIRED10",
         store_name="Expired Store",
         expiry_date=date.today() - timedelta(days=1),
+        user_id=user.id,
     )
     db.session.add(code)
     db.session.commit()

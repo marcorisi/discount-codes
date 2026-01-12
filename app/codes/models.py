@@ -1,8 +1,14 @@
 """Codes domain models."""
 
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy.orm import Mapped
 
 from app.extensions import db
+
+if TYPE_CHECKING:
+    from app.auth.models import User
 
 
 def utcnow() -> datetime:
@@ -24,6 +30,9 @@ class DiscountCode(db.Model):
     store_url: str | None = db.Column(db.String(500))
     is_used: bool = db.Column(db.Boolean, default=False)
     created_at: datetime = db.Column(db.DateTime, default=utcnow)
+    user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    user: Mapped["User"] = db.relationship("User", backref="discount_codes")
 
     @property
     def is_expired(self) -> bool:
