@@ -6,6 +6,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.wrappers import Response
 
+from app.auth.models import User
 from app.codes.models import DiscountCode
 from app.extensions import db
 
@@ -20,12 +21,14 @@ def index() -> str:
     Supports filtering by:
     - search: text search on store_name and store_url
     - expiration: 'all', 'active', or 'expired'
+    - user_id: filter by user who created the code
 
     Returns:
         Rendered homepage template with filtered codes sorted by expiry date.
     """
     search = request.args.get("search", "").strip()
     expiration = request.args.get("expiration", "all")
+    user_id_str = request.args.get("user_id", "").strip()
     today = date.today()
 
     query = DiscountCode.query
@@ -51,7 +54,16 @@ def index() -> str:
     elif expiration == "expired":
         query = query.filter(DiscountCode.expiry_date < today)
 
+    # Apply user filter
+    if user_id_str:
+        try:
+            user_id = int(user_id_str)
+            query = query.filter(DiscountCode.user_id == user_id)
+        except ValueError:
+            pass  # Invalid user_id, ignore filter
+
     codes = query.order_by(DiscountCode.expiry_date.asc().nullslast()).all()
+    users = User.query.order_by(User.username).all()
 
     return render_template(
         "codes/index.html",
@@ -59,6 +71,8 @@ def index() -> str:
         today=today,
         search=search,
         expiration=expiration,
+        user_id=user_id_str,
+        users=users,
     )
 
 
