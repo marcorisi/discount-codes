@@ -69,6 +69,15 @@
                       placeholder="Any additional details...">{{ code.notes or '' }}</textarea>
         </div>
 
+        <div class="flex items-center">
+            <input type="checkbox" id="is_used" name="is_used" value="1"
+                   {% if code.is_used %}checked{% endif %}
+                   class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="is_used" class="ml-2 text-sm font-medium text-gray-700">
+                Mark as used
+            </label>
+        </div>
+
         <div class="pt-2">
             <button type="submit"
                     class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-base font-medium">

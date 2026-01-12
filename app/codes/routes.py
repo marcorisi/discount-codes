@@ -131,6 +131,7 @@ def edit_code(code_id: int) -> str | Response:
         expiry_date_str = request.form.get("expiry_date", "").strip()
         notes = request.form.get("notes", "").strip() or None
         store_url = request.form.get("store_url", "").strip() or None
+        is_used = request.form.get("is_used") == "1"
 
         if not code or not store_name:
             flash("Code and store name are required.", "error")
@@ -150,6 +151,7 @@ def edit_code(code_id: int) -> str | Response:
         discount_code.expiry_date = expiry_date
         discount_code.notes = notes
         discount_code.store_url = store_url
+        discount_code.is_used = is_used
         db.session.commit()
 
         if request.headers.get("HX-Request"):
