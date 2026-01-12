@@ -67,3 +67,9 @@ Flask application using the app factory pattern with domain-based organization.
 - Remember to activate the virtual environment before running the app or running tests
 - Always run tests at the end of the flow: they must pass
 - Update the README.md file for any relevant changes
+
+## Git Workflow
+- Commit frequently: Make small, logical commits as you implement each part of a task
+- Each commit should represent a single, complete change (e.g., "Add User model", "Implement login route", "Add login form validation")
+- This makes it easier to review the step-by-step progression of the work
+- Write clear, descriptive commit messages that explain what was changed and why
