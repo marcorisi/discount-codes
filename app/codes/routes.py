@@ -17,13 +17,49 @@ bp = Blueprint("codes", __name__)
 def index() -> str:
     """Render the homepage with all discount codes.
 
+    Supports filtering by:
+    - search: text search on store_name and store_url
+    - expiration: 'all', 'active', or 'expired'
+
     Returns:
-        Rendered homepage template with codes sorted by expiry date.
+        Rendered homepage template with filtered codes sorted by expiry date.
     """
-    codes = DiscountCode.query.order_by(
-        DiscountCode.expiry_date.asc().nullslast()
-    ).all()
-    return render_template("codes/index.html", codes=codes, today=date.today())
+    search = request.args.get("search", "").strip()
+    expiration = request.args.get("expiration", "all")
+    today = date.today()
+
+    query = DiscountCode.query
+
+    # Apply text search filter
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            db.or_(
+                DiscountCode.store_name.ilike(search_pattern),
+                DiscountCode.store_url.ilike(search_pattern),
+            )
+        )
+
+    # Apply expiration filter
+    if expiration == "active":
+        query = query.filter(
+            db.or_(
+                DiscountCode.expiry_date.is_(None),
+                DiscountCode.expiry_date >= today,
+            )
+        )
+    elif expiration == "expired":
+        query = query.filter(DiscountCode.expiry_date < today)
+
+    codes = query.order_by(DiscountCode.expiry_date.asc().nullslast()).all()
+
+    return render_template(
+        "codes/index.html",
+        codes=codes,
+        today=today,
+        search=search,
+        expiration=expiration,
+    )
 
 
 @bp.route("/codes/add", methods=["GET", "POST"])

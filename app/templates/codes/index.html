@@ -10,6 +10,37 @@
         </a>
     </div>
 
+    <!-- Search and Filter Form -->
+    <form method="GET" action="{{ url_for('codes.index') }}" class="mb-6">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+                <input type="text"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="Search by store name or URL..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="sm:w-48">
+                <select name="expiration"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="all" {% if expiration == 'all' %}selected{% endif %}>All codes</option>
+                    <option value="active" {% if expiration == 'active' %}selected{% endif %}>Active only</option>
+                    <option value="expired" {% if expiration == 'expired' %}selected{% endif %}>Expired only</option>
+                </select>
+            </div>
+            <button type="submit"
+                    class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium">
+                Search
+            </button>
+            {% if search or expiration != 'all' %}
+            <a href="{{ url_for('codes.index') }}"
+               class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-center">
+                Clear
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
     {% if codes %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for code in codes %}
@@ -80,10 +111,17 @@
     </div>
     {% else %}
     <div class="text-center py-12">
+        {% if search or expiration != 'all' %}
+        <p class="text-gray-500 mb-4">No discount codes match your search criteria.</p>
+        <a href="{{ url_for('codes.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">
+            Clear filters
+        </a>
+        {% else %}
         <p class="text-gray-500 mb-4">No discount codes yet.</p>
         <a href="{{ url_for('codes.add_code') }}" class="text-blue-600 hover:text-blue-800 font-medium">
             Add your first code
         </a>
+        {% endif %}
     </div>
     {% endif %}
 </div>
