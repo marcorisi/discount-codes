@@ -1,6 +1,6 @@
 """Shares domain routes."""
 
-from flask import Blueprint, flash, redirect, render_template, url_for
+from flask import Blueprint, redirect, render_template, url_for
 from flask_login import login_required
 from werkzeug.wrappers import Response
 
@@ -48,5 +48,4 @@ def create_share(code_id: int) -> Response:
     db.session.add(share)
     db.session.commit()
 
-    flash("Share link created successfully!", "success")
     return redirect(url_for("shares.view_share", token=share.token))

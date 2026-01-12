@@ -137,22 +137,6 @@ def test_create_share_redirects_to_share_view(
     assert b"REDIRECT10" in response.data
 
 
-def test_create_share_shows_flash_message(
-    authenticated_client: FlaskClient, db
-) -> None:
-    """Test creating a share shows success flash message."""
-    code = DiscountCode(code="FLASH10", store_name="Flash Store")
-    db.session.add(code)
-    db.session.commit()
-
-    response = authenticated_client.post(
-        f"/shares/create/{code.id}",
-        follow_redirects=True,
-    )
-    assert response.status_code == 200
-    assert b"Share link created successfully" in response.data
-
-
 def test_create_share_404_for_nonexistent_code(
     authenticated_client: FlaskClient,
 ) -> None:
