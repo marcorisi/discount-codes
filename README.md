@@ -107,6 +107,10 @@ app/
 │   ├── __init__.py
 │   ├── models.py        # DiscountCode model
 │   └── routes.py        # CRUD routes
+├── shares/              # Code sharing domain
+│   ├── __init__.py
+│   ├── models.py        # Share model
+│   └── routes.py        # Share routes
 ├── static/
 │   └── css/
 │       └── style.css    # Custom CSS
@@ -114,13 +118,16 @@ app/
     ├── base.html        # Base template
     ├── auth/
     │   └── login.html   # Login page
-    └── codes/
-        ├── index.html   # Codes list
-        ├── add.html     # Add code form
-        ├── edit.html    # Edit code form
-        └── partials/    # HTMX partials
-            ├── add_success.html
-            └── edit_success.html
+    ├── codes/
+    │   ├── index.html   # Codes list
+    │   ├── add.html     # Add code form
+    │   ├── edit.html    # Edit code form
+    │   └── partials/    # HTMX partials
+    │       ├── add_success.html
+    │       └── edit_success.html
+    └── shares/
+        ├── view.html    # Shared code view
+        └── expired.html # Expired share page
 
 tests/
 ├── __init__.py
@@ -129,7 +136,11 @@ tests/
 │   ├── __init__.py
 │   ├── test_models.py
 │   └── test_routes.py
-└── codes/               # Codes domain tests
+├── codes/               # Codes domain tests
+│   ├── __init__.py
+│   ├── test_models.py
+│   └── test_routes.py
+└── shares/              # Shares domain tests
     ├── __init__.py
     ├── test_models.py
     └── test_routes.py

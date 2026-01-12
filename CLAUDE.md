@@ -17,6 +17,7 @@ pytest tests/auth/test_routes.py::test_login_with_valid_credentials -v
 # Run domain tests
 pytest tests/auth/ -v
 pytest tests/codes/ -v
+pytest tests/shares/ -v
 
 # Run the app
 flask run
@@ -44,15 +45,20 @@ Flask application using the app factory pattern with domain-based organization.
   - `routes.py` - Login/logout routes (`/auth/login`, `/auth/logout`)
 
 - `app/codes/` - Discount codes domain
-  - `models.py` - DiscountCode model
-  - `routes.py` - CRUD routes (`/`, `/codes/add`)
+  - `models.py` - DiscountCode model with `is_shareable` property
+  - `routes.py` - CRUD routes (`/`, `/codes/add`, `/codes/<id>/edit`, `/codes/<id>/delete`, `/codes/<id>/mark-used`)
+
+- `app/shares/` - Code sharing domain
+  - `models.py` - Share model with token generation and expiration
+  - `routes.py` - Share routes (`/shares/<token>`, `/shares/create/<code_id>`)
 
 **Templates**: Organized by domain in `app/templates/`:
 - `base.html` - Shared layout
 - `auth/` - Auth templates
 - `codes/` - Codes templates with `partials/` for HTMX responses
+- `shares/` - Share view and expired templates
 
-**Testing**: Tests mirror the domain structure in `tests/auth/` and `tests/codes/`. Shared fixtures in `tests/conftest.py`.
+**Testing**: Tests mirror the domain structure in `tests/auth/`, `tests/codes/`, and `tests/shares/`. Shared fixtures in `tests/conftest.py`.
 
 ## Style
 - Use type hints
