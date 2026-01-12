@@ -717,3 +717,168 @@ def test_homepage_displays_edited_by_username(
 
     response = authenticated_client.get("/")
     assert b"edited by testuser" in response.data
+
+
+# User filter tests
+
+
+def test_homepage_displays_user_filter(authenticated_client: FlaskClient) -> None:
+    """Test homepage displays user filter select."""
+    response = authenticated_client.get("/")
+    assert b'name="user_id"' in response.data
+    assert b"All users" in response.data
+
+
+def test_homepage_populates_user_filter_with_users(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage user filter is populated with users from database."""
+    # The testuser already exists from authenticated_client fixture
+    response = authenticated_client.get("/")
+    assert b"testuser" in response.data
+
+
+def test_filter_by_user_id(authenticated_client: FlaskClient, db) -> None:
+    """Test filtering discount codes by user_id."""
+    user1 = _get_test_user(db)
+    user2 = User(username="otheruser")
+    user2.set_password("password")
+    db.session.add(user2)
+    db.session.commit()
+
+    code1 = DiscountCode(code="CODE1", store_name="Store 1", user_id=user1.id)
+    code2 = DiscountCode(code="CODE2", store_name="Store 2", user_id=user2.id)
+    db.session.add_all([code1, code2])
+    db.session.commit()
+
+    response = authenticated_client.get(f"/?user_id={user1.id}")
+    assert b"CODE1" in response.data
+    assert b"CODE2" not in response.data
+
+    response = authenticated_client.get(f"/?user_id={user2.id}")
+    assert b"CODE2" in response.data
+    assert b"CODE1" not in response.data
+
+
+def test_filter_by_user_id_shows_all_when_empty(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test filtering with empty user_id shows all codes."""
+    user1 = _get_test_user(db)
+    user2 = User(username="otheruser")
+    user2.set_password("password")
+    db.session.add(user2)
+    db.session.commit()
+
+    code1 = DiscountCode(code="CODE1", store_name="Store 1", user_id=user1.id)
+    code2 = DiscountCode(code="CODE2", store_name="Store 2", user_id=user2.id)
+    db.session.add_all([code1, code2])
+    db.session.commit()
+
+    response = authenticated_client.get("/?user_id=")
+    assert b"CODE1" in response.data
+    assert b"CODE2" in response.data
+
+
+def test_filter_by_user_id_combined_with_search(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test combining user_id filter with search."""
+    user1 = _get_test_user(db)
+    user2 = User(username="otheruser")
+    user2.set_password("password")
+    db.session.add(user2)
+    db.session.commit()
+
+    code1 = DiscountCode(code="AMAZON1", store_name="Amazon Store", user_id=user1.id)
+    code2 = DiscountCode(code="AMAZON2", store_name="Amazon Outlet", user_id=user2.id)
+    code3 = DiscountCode(code="TARGET1", store_name="Target Store", user_id=user1.id)
+    db.session.add_all([code1, code2, code3])
+    db.session.commit()
+
+    response = authenticated_client.get(f"/?search=Amazon&user_id={user1.id}")
+    assert b"AMAZON1" in response.data
+    assert b"AMAZON2" not in response.data
+    assert b"TARGET1" not in response.data
+
+
+def test_filter_by_user_id_combined_with_expiration(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test combining user_id filter with expiration filter."""
+    user1 = _get_test_user(db)
+    user2 = User(username="otheruser")
+    user2.set_password("password")
+    db.session.add(user2)
+    db.session.commit()
+
+    today = date.today()
+    code1 = DiscountCode(
+        code="ACTIVE1",
+        store_name="Active Store 1",
+        expiry_date=today + timedelta(days=10),
+        user_id=user1.id,
+    )
+    code2 = DiscountCode(
+        code="EXPIRED1",
+        store_name="Expired Store 1",
+        expiry_date=today - timedelta(days=1),
+        user_id=user1.id,
+    )
+    code3 = DiscountCode(
+        code="ACTIVE2",
+        store_name="Active Store 2",
+        expiry_date=today + timedelta(days=10),
+        user_id=user2.id,
+    )
+    db.session.add_all([code1, code2, code3])
+    db.session.commit()
+
+    response = authenticated_client.get(f"/?expiration=active&user_id={user1.id}")
+    assert b"ACTIVE1" in response.data
+    assert b"EXPIRED1" not in response.data
+    assert b"ACTIVE2" not in response.data
+
+
+def test_user_filter_preserves_selection(authenticated_client: FlaskClient, db) -> None:
+    """Test user filter preserves the selected value after submit."""
+    user = _get_test_user(db)
+    response = authenticated_client.get(f"/?user_id={user.id}")
+    assert f'value="{user.id}" selected'.encode() in response.data
+
+
+def test_clear_button_shown_with_user_filter(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test clear button is shown when user filter is applied."""
+    user = _get_test_user(db)
+    response = authenticated_client.get(f"/?user_id={user.id}")
+    assert b"Clear" in response.data
+
+
+def test_user_filter_invalid_id_ignored(authenticated_client: FlaskClient, db) -> None:
+    """Test invalid user_id is ignored and shows all codes."""
+    user = _get_test_user(db)
+    code = DiscountCode(code="CODE1", store_name="Store 1", user_id=user.id)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/?user_id=invalid")
+    assert b"CODE1" in response.data
+
+
+def test_user_filter_no_results_message(authenticated_client: FlaskClient, db) -> None:
+    """Test empty state message when user filter returns no results."""
+    user1 = _get_test_user(db)
+    user2 = User(username="otheruser")
+    user2.set_password("password")
+    db.session.add(user2)
+    db.session.commit()
+
+    code = DiscountCode(code="CODE1", store_name="Store 1", user_id=user1.id)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get(f"/?user_id={user2.id}")
+    assert b"No discount codes match your search criteria" in response.data
+    assert b"Clear filters" in response.data
