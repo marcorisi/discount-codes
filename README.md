@@ -47,6 +47,25 @@ app = create_app()
 init_db(app)
 ```
 
+## Database Migrations
+
+This project uses Flask-Migrate (Alembic) for database migrations. Migrations are **not** run automatically on app startup - you must apply them manually.
+
+### Apply pending migrations
+
+```bash
+flask db upgrade
+```
+
+### Create a new migration after model changes
+
+```bash
+flask db migrate -m "Description of changes"
+flask db upgrade
+```
+
+> **Note:** `migrate.init_app()` in the app factory only registers the `flask db` CLI commands - it does not auto-run migrations. This is intentional to prevent data loss and race conditions in production.
+
 ## Running the Application
 
 ```bash
