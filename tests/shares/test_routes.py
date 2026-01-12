@@ -1,6 +1,6 @@
 """Tests for shares domain routes."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from flask.testing import FlaskClient
 
@@ -146,10 +146,66 @@ def test_create_share_404_for_nonexistent_code(
 
 
 def test_homepage_shows_share_icon(authenticated_client: FlaskClient, db) -> None:
-    """Test homepage displays share icon for each code."""
+    """Test homepage displays share icon for shareable codes."""
     code = DiscountCode(code="ICON10", store_name="Icon Store")
     db.session.add(code)
     db.session.commit()
 
     response = authenticated_client.get("/")
     assert f"/shares/create/{code.id}".encode() in response.data
+
+
+def test_create_share_400_for_used_code(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test creating a share for used code returns 400."""
+    code = DiscountCode(code="USED10", store_name="Used Store", is_used=True)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(f"/shares/create/{code.id}")
+    assert response.status_code == 400
+
+
+def test_create_share_400_for_expired_code(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test creating a share for expired code returns 400."""
+    code = DiscountCode(
+        code="EXPIRED10",
+        store_name="Expired Store",
+        expiry_date=date.today() - timedelta(days=1),
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.post(f"/shares/create/{code.id}")
+    assert response.status_code == 400
+
+
+def test_homepage_hides_share_icon_for_used_code(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage hides share icon for used codes."""
+    code = DiscountCode(code="USED10", store_name="Used Store", is_used=True)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/shares/create/{code.id}".encode() not in response.data
+
+
+def test_homepage_hides_share_icon_for_expired_code(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage hides share icon for expired codes."""
+    code = DiscountCode(
+        code="EXPIRED10",
+        store_name="Expired Store",
+        expiry_date=date.today() - timedelta(days=1),
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/shares/create/{code.id}".encode() not in response.data

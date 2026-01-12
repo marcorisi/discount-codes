@@ -1,6 +1,6 @@
 """Shares domain routes."""
 
-from flask import Blueprint, redirect, render_template, url_for
+from flask import Blueprint, abort, redirect, render_template, url_for
 from flask_login import login_required
 from werkzeug.wrappers import Response
 
@@ -43,6 +43,9 @@ def create_share(code_id: int) -> Response:
         Redirect to the share view page.
     """
     discount_code = db.get_or_404(DiscountCode, code_id)
+
+    if not discount_code.is_shareable:
+        abort(400)
 
     share = Share(discount_code_id=discount_code.id)
     db.session.add(share)
