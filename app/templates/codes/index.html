@@ -65,6 +65,7 @@
                         </button>
                     </form>
                     {% endif %}
+                    {% if code.is_shareable %}
                     <form action="{{ url_for('shares.create_share', code_id=code.id) }}" method="POST" class="inline"
                           onsubmit="return confirm('Create a share link for this discount code? The link will expire in 1 day.');">
                         <button type="submit"
@@ -75,6 +76,7 @@
                             </svg>
                         </button>
                     </form>
+                    {% endif %}
                     <a href="{{ url_for('codes.edit_code', code_id=code.id) }}"
                        class="text-gray-400 hover:text-blue-600 p-1"
                        title="Edit code">
