@@ -53,6 +53,18 @@
                     {% if code.discount_value %}
                     <span class="text-lg font-bold text-green-600">{{ code.discount_value }}</span>
                     {% endif %}
+                    {% if not code.is_used %}
+                    <form action="{{ url_for('codes.mark_used', code_id=code.id) }}" method="POST" class="inline"
+                          onsubmit="return confirm('Mark this discount code as used?');">
+                        <button type="submit"
+                                class="text-gray-400 hover:text-green-600 p-1"
+                                title="Mark as used">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </button>
+                    </form>
+                    {% endif %}
                     <a href="{{ url_for('codes.edit_code', code_id=code.id) }}"
                        class="text-gray-400 hover:text-blue-600 p-1"
                        title="Edit code">

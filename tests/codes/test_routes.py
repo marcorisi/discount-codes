@@ -524,3 +524,65 @@ def test_clear_button_hidden_without_filters(authenticated_client: FlaskClient) 
     assert "Search" in data
     # The Clear link should not be present when no filters
     assert 'class="px-6 py-2 bg-gray-200' not in data
+
+
+# Mark as used tests
+
+
+def test_mark_used_requires_login(client: FlaskClient, db) -> None:
+    """Test mark used redirects to login when not authenticated."""
+    code = DiscountCode(code="TEST10", store_name="Test Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = client.post(f"/codes/{code.id}/mark-used")
+    assert response.status_code == 302
+    assert "/auth/login" in response.headers["Location"]
+
+
+def test_mark_used_marks_code(authenticated_client: FlaskClient, db) -> None:
+    """Test marking a discount code as used updates the database."""
+    code = DiscountCode(code="MARKME", store_name="Mark Store", is_used=False)
+    db.session.add(code)
+    db.session.commit()
+    code_id = code.id
+
+    response = authenticated_client.post(
+        f"/codes/{code_id}/mark-used",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Discount code marked as used" in response.data
+
+    db.session.refresh(code)
+    assert code.is_used is True
+
+
+def test_mark_used_404_for_nonexistent(authenticated_client: FlaskClient) -> None:
+    """Test mark used returns 404 for nonexistent code."""
+    response = authenticated_client.post("/codes/99999/mark-used")
+    assert response.status_code == 404
+
+
+def test_homepage_shows_mark_used_icon_for_unused(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage displays mark as used icon for unused codes."""
+    code = DiscountCode(code="UNUSED", store_name="Unused Store", is_used=False)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/codes/{code.id}/mark-used".encode() in response.data
+
+
+def test_homepage_hides_mark_used_icon_for_used(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage hides mark as used icon for already used codes."""
+    code = DiscountCode(code="USED", store_name="Used Store", is_used=True)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert f"/codes/{code.id}/mark-used".encode() not in response.data

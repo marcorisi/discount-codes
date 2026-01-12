@@ -181,3 +181,22 @@ def delete_code(code_id: int) -> Response:
 
     flash("Discount code deleted successfully!", "success")
     return redirect(url_for("codes.index"))
+
+
+@bp.route("/codes/<int:code_id>/mark-used", methods=["POST"])
+@login_required
+def mark_used(code_id: int) -> Response:
+    """Mark a discount code as used.
+
+    Args:
+        code_id: The ID of the discount code to mark as used.
+
+    Returns:
+        Redirect to homepage on success.
+    """
+    discount_code = db.get_or_404(DiscountCode, code_id)
+    discount_code.is_used = True
+    db.session.commit()
+
+    flash("Discount code marked as used!", "success")
+    return redirect(url_for("codes.index"))
