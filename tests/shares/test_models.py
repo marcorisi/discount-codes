@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+from app.auth.models import User
 from app.codes.models import DiscountCode
 from app.shares.models import Share, generate_token
 
@@ -24,9 +25,9 @@ def test_generate_token_unique() -> None:
     assert len(set(tokens)) == 100
 
 
-def test_share_creation(db) -> None:
+def test_share_creation(db, test_user: User) -> None:
     """Test Share model creation with auto-generated token and expiration."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -42,9 +43,9 @@ def test_share_creation(db) -> None:
     assert share.created_at is not None
 
 
-def test_share_expiration_default_one_day(db) -> None:
+def test_share_expiration_default_one_day(db, test_user: User) -> None:
     """Test Share expiration defaults to 1 day from creation."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -57,9 +58,9 @@ def test_share_expiration_default_one_day(db) -> None:
     assert abs((share.expires_at - expected_expiry).total_seconds()) < 1
 
 
-def test_share_is_expired_false_when_valid(db) -> None:
+def test_share_is_expired_false_when_valid(db, test_user: User) -> None:
     """Test is_expired returns False for valid share."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -70,9 +71,9 @@ def test_share_is_expired_false_when_valid(db) -> None:
     assert share.is_expired is False
 
 
-def test_share_is_expired_true_when_expired(db) -> None:
+def test_share_is_expired_true_when_expired(db, test_user: User) -> None:
     """Test is_expired returns True for expired share."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -87,9 +88,9 @@ def test_share_is_expired_true_when_expired(db) -> None:
     assert share.is_expired is True
 
 
-def test_share_relationship_to_discount_code(db) -> None:
+def test_share_relationship_to_discount_code(db, test_user: User) -> None:
     """Test Share has relationship to DiscountCode."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -101,9 +102,9 @@ def test_share_relationship_to_discount_code(db) -> None:
     assert share in code.shares
 
 
-def test_share_repr(db) -> None:
+def test_share_repr(db, test_user: User) -> None:
     """Test Share string representation."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
@@ -114,9 +115,9 @@ def test_share_repr(db) -> None:
     assert repr(share) == "<Share abc12345>"
 
 
-def test_share_token_unique_constraint(db) -> None:
+def test_share_token_unique_constraint(db, test_user: User) -> None:
     """Test Share token must be unique."""
-    code = DiscountCode(code="TEST10", store_name="Test Store")
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
     db.session.add(code)
     db.session.commit()
 
