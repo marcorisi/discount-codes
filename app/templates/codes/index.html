@@ -149,6 +149,12 @@
                 <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded text-xs font-medium">Used</span>
                 {% endif %}
             </div>
+
+            {% if code.user %}
+            <div class="mt-2 text-xs text-gray-400">
+                edited by {{ code.user.username }}
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
