@@ -358,3 +358,169 @@ def test_homepage_displays_store_url(authenticated_client: FlaskClient, db) -> N
     response = authenticated_client.get("/")
     assert b"https://example.com" in response.data
     assert b"Visit Store" in response.data
+
+
+# Search and filter tests
+
+
+def test_homepage_displays_search_form(authenticated_client: FlaskClient) -> None:
+    """Test homepage displays search form."""
+    response = authenticated_client.get("/")
+    assert b'name="search"' in response.data
+    assert b'name="expiration"' in response.data
+    assert b"Search by store name or URL" in response.data
+
+
+def test_search_by_store_name(authenticated_client: FlaskClient, db) -> None:
+    """Test searching discount codes by store name."""
+    code1 = DiscountCode(code="CODE1", store_name="Amazon Store")
+    code2 = DiscountCode(code="CODE2", store_name="Target Store")
+    db.session.add_all([code1, code2])
+    db.session.commit()
+
+    response = authenticated_client.get("/?search=Amazon")
+    assert b"CODE1" in response.data
+    assert b"Amazon Store" in response.data
+    assert b"CODE2" not in response.data
+
+
+def test_search_by_store_url(authenticated_client: FlaskClient, db) -> None:
+    """Test searching discount codes by store URL."""
+    code1 = DiscountCode(
+        code="CODE1", store_name="Store 1", store_url="https://amazon.com"
+    )
+    code2 = DiscountCode(
+        code="CODE2", store_name="Store 2", store_url="https://target.com"
+    )
+    db.session.add_all([code1, code2])
+    db.session.commit()
+
+    response = authenticated_client.get("/?search=amazon.com")
+    assert b"CODE1" in response.data
+    assert b"CODE2" not in response.data
+
+
+def test_search_case_insensitive(authenticated_client: FlaskClient, db) -> None:
+    """Test search is case insensitive."""
+    code = DiscountCode(code="CODE1", store_name="Amazon Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/?search=amazon")
+    assert b"CODE1" in response.data
+    assert b"Amazon Store" in response.data
+
+
+def test_filter_active_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test filtering to show only active (non-expired) codes."""
+    today = date.today()
+    active_code = DiscountCode(
+        code="ACTIVE",
+        store_name="Active Store",
+        expiry_date=today + timedelta(days=10),
+    )
+    expired_code = DiscountCode(
+        code="EXPIRED",
+        store_name="Expired Store",
+        expiry_date=today - timedelta(days=1),
+    )
+    no_expiry_code = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    db.session.add_all([active_code, expired_code, no_expiry_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/?expiration=active")
+    assert b"ACTIVE" in response.data
+    assert b"NOEXPIRY" in response.data
+    assert b"EXPIRED" not in response.data
+
+
+def test_filter_expired_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test filtering to show only expired codes."""
+    today = date.today()
+    active_code = DiscountCode(
+        code="ACTIVE",
+        store_name="Active Store",
+        expiry_date=today + timedelta(days=10),
+    )
+    expired_code = DiscountCode(
+        code="EXPIRED",
+        store_name="Expired Store",
+        expiry_date=today - timedelta(days=1),
+    )
+    no_expiry_code = DiscountCode(code="NOEXPIRY", store_name="No Expiry Store")
+    db.session.add_all([active_code, expired_code, no_expiry_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/?expiration=expired")
+    assert b"EXPIRED" in response.data
+    assert b"ACTIVE" not in response.data
+    assert b"NOEXPIRY" not in response.data
+
+
+def test_search_and_filter_combined(authenticated_client: FlaskClient, db) -> None:
+    """Test combining search and expiration filter."""
+    today = date.today()
+    code1 = DiscountCode(
+        code="AMAZON10",
+        store_name="Amazon Store",
+        expiry_date=today + timedelta(days=10),
+    )
+    code2 = DiscountCode(
+        code="AMAZON20",
+        store_name="Amazon Outlet",
+        expiry_date=today - timedelta(days=1),
+    )
+    code3 = DiscountCode(
+        code="TARGET10",
+        store_name="Target Store",
+        expiry_date=today + timedelta(days=10),
+    )
+    db.session.add_all([code1, code2, code3])
+    db.session.commit()
+
+    response = authenticated_client.get("/?search=Amazon&expiration=active")
+    assert b"AMAZON10" in response.data
+    assert b"AMAZON20" not in response.data
+    assert b"TARGET10" not in response.data
+
+
+def test_search_no_results_message(authenticated_client: FlaskClient, db) -> None:
+    """Test empty state message when search returns no results."""
+    code = DiscountCode(code="CODE1", store_name="Amazon Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/?search=NonexistentStore")
+    assert b"No discount codes match your search criteria" in response.data
+    assert b"Clear filters" in response.data
+
+
+def test_search_preserves_input_value(authenticated_client: FlaskClient) -> None:
+    """Test search input preserves the search value after submit."""
+    response = authenticated_client.get("/?search=TestSearch")
+    assert b'value="TestSearch"' in response.data
+
+
+def test_filter_preserves_selection(authenticated_client: FlaskClient) -> None:
+    """Test expiration filter preserves the selected value after submit."""
+    response = authenticated_client.get("/?expiration=active")
+    assert b'value="active" selected' in response.data
+
+
+def test_clear_button_shown_with_filters(authenticated_client: FlaskClient) -> None:
+    """Test clear button is shown when filters are applied."""
+    response = authenticated_client.get("/?search=test")
+    assert b"Clear" in response.data
+
+    response = authenticated_client.get("/?expiration=active")
+    assert b"Clear" in response.data
+
+
+def test_clear_button_hidden_without_filters(authenticated_client: FlaskClient) -> None:
+    """Test clear button is hidden when no filters are applied."""
+    response = authenticated_client.get("/")
+    # Check that Clear button is not present (but Search button is)
+    data = response.data.decode()
+    assert "Search" in data
+    # The Clear link should not be present when no filters
+    assert 'class="px-6 py-2 bg-gray-200' not in data
