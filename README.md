@@ -7,7 +7,13 @@ and experiment with Claude Code.
 
 # Discount Code Manager
 
-A Flask web application for managing discount codes.
+A Flask web application for managing and sharing discount codes. Keep track of your promotional codes, coupons, and discounts in one place. Features include:
+
+- **User authentication** - Secure login with password hashing
+- **Discount code management** - Store codes with details like store name, discount value, expiry date, and notes
+- **Expiration tracking** - Visual indicators for expired and used codes
+- **Shareable links** - Generate temporary links to share codes with others (auto-expire after 24 hours)
+- **Multi-user support** - Each user manages their own codes with filtering options
 
 ## Tech Stack
 
