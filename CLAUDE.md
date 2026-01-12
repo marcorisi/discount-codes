@@ -62,11 +62,14 @@ Flask application using the app factory pattern with domain-based organization.
 - Mobile-first frontend design
 
 ## Workflow
-- Be sure to typecheck when you're done making a series of code changes
+- When adding a new feature, add the relevant tests
+- When editing a new feature, remember to edit the relevant tests
+- When removing a feature, remember to clean up the irrelevant tests
 - Prefer running single tests, and not the whole test suite, for performance
 - Remember to activate the virtual environment before running the app or running tests
 - Always run tests at the end of the flow: they must pass
 - Update the README.md file for any relevant changes
+- Be sure to typecheck when you're done making a series of code changes
 
 ## Git Workflow
 - Commit frequently: Make small, logical commits as you implement each part of a task
