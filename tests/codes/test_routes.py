@@ -586,3 +586,66 @@ def test_homepage_hides_mark_used_icon_for_used(
 
     response = authenticated_client.get("/")
     assert f"/codes/{code.id}/mark-used".encode() not in response.data
+
+
+def test_add_code_sets_user_id(authenticated_client: FlaskClient, db) -> None:
+    """Test adding a code sets the user_id to the current user."""
+    response = authenticated_client.post(
+        "/codes/add",
+        data={"code": "USER10", "store_name": "User Store"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    code = DiscountCode.query.filter_by(code="USER10").first()
+    assert code is not None
+    assert code.user_id is not None
+    assert code.user is not None
+    assert code.user.username == "testuser"
+
+
+def test_edit_code_updates_user_id(authenticated_client: FlaskClient, db) -> None:
+    """Test editing a code updates the user_id to the current user."""
+    # Create a code without user_id
+    code = DiscountCode(code="NOEDIT", store_name="No Edit Store")
+    db.session.add(code)
+    db.session.commit()
+    assert code.user_id is None
+
+    response = authenticated_client.post(
+        f"/codes/{code.id}/edit",
+        data={"code": "EDITED", "store_name": "Edited Store"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    db.session.refresh(code)
+    assert code.user_id is not None
+    assert code.user.username == "testuser"
+
+
+def test_homepage_displays_edited_by_username(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage displays 'edited by username' for codes with user_id."""
+    from app.auth.models import User
+
+    user = User.query.filter_by(username="testuser").first()
+    code = DiscountCode(code="SHOWUSER", store_name="Show User Store", user_id=user.id)
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"edited by testuser" in response.data
+
+
+def test_homepage_hides_edited_by_when_no_user(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test homepage hides 'edited by' for codes without user_id."""
+    code = DiscountCode(code="NOUSER", store_name="No User Store")
+    db.session.add(code)
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"edited by" not in response.data
