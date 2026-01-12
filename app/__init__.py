@@ -33,9 +33,11 @@ def create_app(config_name: str = "default") -> Flask:
 
     from app.auth import bp as auth_bp
     from app.codes import bp as codes_bp
+    from app.shares import bp as shares_bp
 
     app.register_blueprint(codes_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(shares_bp)
 
     register_cli_commands(app)
 
