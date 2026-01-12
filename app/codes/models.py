@@ -25,6 +25,21 @@ class DiscountCode(db.Model):
     is_used: bool = db.Column(db.Boolean, default=False)
     created_at: datetime = db.Column(db.DateTime, default=utcnow)
 
+    @property
+    def is_expired(self) -> bool:
+        """Check if the discount code has expired."""
+        if self.expiry_date is None:
+            return False
+        return self.expiry_date < date.today()
+
+    @property
+    def is_shareable(self) -> bool:
+        """Check if the discount code can be shared.
+
+        A code is shareable if it's not used and not expired.
+        """
+        return not self.is_used and not self.is_expired
+
     def __repr__(self) -> str:
         """Return string representation of the model."""
         return f"<DiscountCode {self.code} for {self.store_name}>"
