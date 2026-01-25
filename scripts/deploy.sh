@@ -49,7 +49,7 @@ cd "$DISCOUNT_CODES_DEPLOY_DIR"
 # Create venv if it doesn't exist
 if [[ ! -d "venv" ]]; then
     echo "==> Creating virtual environment..."
-    python3 -m venv venv
+    python3 -m venv venv    # Alternative, you could also use virtualenv venv if virtualenv is preferred
 fi
 
 source venv/bin/activate
