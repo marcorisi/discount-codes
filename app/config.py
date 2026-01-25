@@ -9,6 +9,8 @@ class Config:
 
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "dev-secret-key")
     SQLALCHEMY_TRACK_MODIFICATIONS: ClassVar[bool] = False
+    SLACK_NOTIFIER_CMD: str | None = os.environ.get("SLACK_NOTIFIER_CMD")
+    REMINDER_DAYS_BEFORE: int = int(os.environ.get("REMINDER_DAYS_BEFORE", "7"))
 
 
 class DevelopmentConfig(Config):

@@ -1,5 +1,8 @@
 """Flask application factory."""
 
+import subprocess
+from datetime import date, timedelta
+
 import click
 from flask import Flask
 
@@ -47,6 +50,7 @@ def create_app(config_name: str = "default") -> Flask:
 def register_cli_commands(app: Flask) -> None:
     """Register CLI commands."""
     from app.auth.models import User
+    from app.codes.models import DiscountCode
 
     @app.cli.command("create-user")
     @click.argument("username")
@@ -62,6 +66,40 @@ def register_cli_commands(app: Flask) -> None:
         db.session.add(user)
         db.session.commit()
         click.echo(f"User '{username}' created successfully.")
+
+    @app.cli.command("send-expiry-reminders")
+    def send_expiry_reminders() -> None:
+        """Send Slack notifications for discount codes expiring soon."""
+        cmd = app.config.get("SLACK_NOTIFIER_CMD")
+        if not cmd:
+            click.echo("Error: SLACK_NOTIFIER_CMD is not configured.")
+            raise SystemExit(1)
+
+        days_before = app.config.get("REMINDER_DAYS_BEFORE", 7)
+        today = date.today()
+        threshold_date = today + timedelta(days=days_before)
+
+        codes = DiscountCode.query.filter(
+            DiscountCode.is_used == False,  # noqa: E712
+            DiscountCode.expiry_date.isnot(None),
+            DiscountCode.expiry_date >= today,
+            DiscountCode.expiry_date <= threshold_date,
+        ).all()
+
+        sent_count = 0
+        for code in codes:
+            message = (
+                f"Reminder: '{code.store_name}' discount code "
+                f"({code.discount_value}) expires on {code.expiry_date}"
+            )
+            try:
+                subprocess.run([cmd, message], check=True)
+                sent_count += 1
+            except subprocess.CalledProcessError as e:
+                click.echo(f"Error: Failed to send notification: {e}")
+                raise SystemExit(1)
+
+        click.echo(f"Sent {sent_count} expiry reminder(s).")
 
 
 def init_db(app: Flask) -> None:
