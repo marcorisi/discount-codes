@@ -1,6 +1,6 @@
 """Tests for shares domain models."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.auth.models import User
 from app.codes.models import DiscountCode
@@ -80,7 +80,7 @@ def test_share_is_expired_true_when_expired(db, test_user: User) -> None:
     # Create share with past expiration
     share = Share(
         discount_code_id=code.id,
-        expires_at=datetime.utcnow() - timedelta(hours=1),
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
     )
     db.session.add(share)
     db.session.commit()

@@ -1,6 +1,6 @@
 """Tests for shares domain routes."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from flask.testing import FlaskClient
 
@@ -72,7 +72,7 @@ def test_view_share_expired_shows_message(
 
     share = Share(
         discount_code_id=code.id,
-        expires_at=datetime.utcnow() - timedelta(hours=1),
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
     )
     db.session.add(share)
     db.session.commit()

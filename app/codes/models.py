@@ -29,7 +29,7 @@ class DiscountCode(db.Model):
     notes: str | None = db.Column(db.Text)
     store_url: str | None = db.Column(db.String(500))
     is_used: bool = db.Column(db.Boolean, default=False)
-    created_at: datetime = db.Column(db.DateTime, default=utcnow)
+    created_at: datetime = db.Column(db.DateTime(timezone=True), default=utcnow)
     user_id: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     user: Mapped["User"] = db.relationship("User", backref="discount_codes")

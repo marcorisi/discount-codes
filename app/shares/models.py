@@ -2,15 +2,14 @@
 
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.extensions import db
 
 
 def utcnow() -> datetime:
     """Return the current UTC time."""
-    return datetime.utcnow()
-
+    return datetime.now(timezone.utc)
 
 def generate_token(length: int = 8) -> str:
     """Generate a random alphanumeric token.
@@ -35,8 +34,8 @@ class Share(db.Model):
     discount_code_id: int = db.Column(
         db.Integer, db.ForeignKey("discount_codes.id"), nullable=False
     )
-    created_at: datetime = db.Column(db.DateTime, default=utcnow)
-    expires_at: datetime = db.Column(db.DateTime, nullable=False)
+    created_at: datetime = db.Column(db.DateTime(timezone=True), default=utcnow)
+    expires_at: datetime = db.Column(db.DateTime(timezone=True), nullable=False)
 
     discount_code = db.relationship("DiscountCode", backref="shares")
 
@@ -51,7 +50,11 @@ class Share(db.Model):
     @property
     def is_expired(self) -> bool:
         """Check if the share link has expired."""
-        return utcnow() > self.expires_at
+        expires_at = self.expires_at
+        # Ensure expires_at is timezone-aware
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        return utcnow() > expires_at
 
     def __repr__(self) -> str:
         """Return string representation of Share."""
