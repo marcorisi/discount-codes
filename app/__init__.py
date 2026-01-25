@@ -42,6 +42,16 @@ def create_app(config_name: str = "default") -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(shares_bp)
 
+    # Add X-Robots-Tag header to all responses
+    @app.after_request
+    def add_noindex_header(response):
+        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+        return response
+
+    @app.route('/robots.txt')
+    def robots_txt():
+        return app.send_static_file('robots.txt')
+
     register_cli_commands(app)
 
     return app
