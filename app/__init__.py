@@ -100,8 +100,8 @@ def register_cli_commands(app: Flask) -> None:
         sent_count = 0
         for code in codes:
             message = (
-                f"Reminder: '{code.store_name}' discount code "
-                f"({code.discount_value}) expires on {code.expiry_date}"
+                f":warning: Reminder: *{code.store_name}* discount code "
+                f"*({code.discount_value})* expires on _{code.expiry_date}_!"
             )
             try:
                 subprocess.run([*shlex.split(cmd), message], check=True)
