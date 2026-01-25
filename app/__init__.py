@@ -1,5 +1,6 @@
 """Flask application factory."""
 
+import shlex
 import subprocess
 from datetime import date, timedelta
 
@@ -103,7 +104,7 @@ def register_cli_commands(app: Flask) -> None:
                 f"({code.discount_value}) expires on {code.expiry_date}"
             )
             try:
-                subprocess.run([cmd, message], check=True)
+                subprocess.run([*shlex.split(cmd), message], check=True)
                 sent_count += 1
             except subprocess.CalledProcessError as e:
                 click.echo(f"Error: Failed to send notification: {e}")
