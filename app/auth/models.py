@@ -1,6 +1,6 @@
 """Auth domain models."""
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -10,7 +10,7 @@ from app.extensions import db
 
 def utcnow() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 class User(UserMixin, db.Model):

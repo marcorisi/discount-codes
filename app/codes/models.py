@@ -1,6 +1,6 @@
 """Codes domain models."""
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Mapped
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def utcnow() -> datetime:
     """Return current UTC datetime."""
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 class DiscountCode(db.Model):
