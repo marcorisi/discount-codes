@@ -87,6 +87,35 @@ python run.py
 
 Visit http://localhost:5000
 
+## CLI Commands
+
+### Create a user
+
+```bash
+flask create-user <username>
+```
+
+### Send expiry reminders
+
+Send Slack notifications for discount codes expiring within a configurable number of days.
+
+```bash
+flask send-expiry-reminders
+```
+
+**Required environment variables:**
+- `SLACK_NOTIFIER_CMD` - Command to execute for sending notifications (e.g., a script that posts to Slack)
+
+**Optional environment variables:**
+- `REMINDER_DAYS_BEFORE` - Number of days before expiry to send reminders (default: 7)
+
+**Example:**
+```bash
+export SLACK_NOTIFIER_CMD="/path/to/slack-notify.sh"
+export REMINDER_DAYS_BEFORE=7
+flask send-expiry-reminders
+```
+
 ## Running Tests
 
 ```bash
@@ -139,6 +168,7 @@ app/
 tests/
 ├── __init__.py
 ├── conftest.py          # Pytest fixtures
+├── test_cli.py          # CLI command tests
 ├── auth/                # Auth domain tests
 │   ├── __init__.py
 │   ├── test_models.py
