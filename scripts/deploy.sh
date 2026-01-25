@@ -41,6 +41,9 @@ rsync -av --delete \
     --exclude='*.pyc' \
     --exclude='.env' \
     --exclude='instance/' \
+    --exclude='*.pid' \
+    --exclude='*.sock' \
+    --exclude='app/logs/' \
     "$DISCOUNT_CODES_REPO_DIR/" "$DISCOUNT_CODES_DEPLOY_DIR/"
 
 echo "==> Activating virtual environment..."
