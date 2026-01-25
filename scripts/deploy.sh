@@ -41,8 +41,9 @@ rsync -av --delete \
     --exclude='*.pyc' \
     --exclude='.env' \
     --exclude='instance/' \
-    --exclude='*.pid' \
-    --exclude='*.sock' \
+    --filter="P *.pid" \
+    --filter="P *.sock" \
+    --filter="P *.log" \
     --exclude='app/logs/' \
     "$DISCOUNT_CODES_REPO_DIR/" "$DISCOUNT_CODES_DEPLOY_DIR/"
 
