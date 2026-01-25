@@ -105,6 +105,9 @@ dmypy.json
 *.sqlite
 *.sqlite3
 
+# Logs
+app/logs/*
+
 # IDE
 .idea/
 .vscode/
