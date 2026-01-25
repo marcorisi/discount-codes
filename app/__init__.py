@@ -2,7 +2,7 @@
 
 import shlex
 import subprocess
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import click
 from flask import Flask
@@ -83,7 +83,7 @@ def register_cli_commands(app: Flask) -> None:
         """Send Slack notifications for discount codes expiring soon."""
         cmd = app.config.get("SLACK_NOTIFIER_CMD")
         if not cmd:
-            click.echo("Error: SLACK_NOTIFIER_CMD is not configured.")
+            click.echo(f"[{datetime.now().isoformat()}] Error: SLACK_NOTIFIER_CMD is not configured.")
             raise SystemExit(1)
 
         days_before = app.config.get("REMINDER_DAYS_BEFORE", 7)
@@ -107,10 +107,10 @@ def register_cli_commands(app: Flask) -> None:
                 subprocess.run([*shlex.split(cmd), message], check=True)
                 sent_count += 1
             except subprocess.CalledProcessError as e:
-                click.echo(f"Error: Failed to send notification: {e}")
+                click.echo(f"[{datetime.now().isoformat()}] Error: Failed to send notification: {e}")
                 raise SystemExit(1)
 
-        click.echo(f"Sent {sent_count} expiry reminder(s).")
+        click.echo(f"[{datetime.now().isoformat()}] Sent {sent_count} expiry reminder(s).")
 
 
 def init_db(app: Flask) -> None:
