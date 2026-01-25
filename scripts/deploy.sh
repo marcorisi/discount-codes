@@ -66,8 +66,8 @@ flask db upgrade
 
 echo "==> Restarting gunicorn..."
 if [[ -f "$DISCOUNT_CODES_PID_FILE" ]]; then
-    kill -TERM "$(cat "$DISCOUNT_CODES_PID_FILE")"
-    echo "    Sent SIGTERM to gunicorn (systemd will restart it)"
+    kill -HUP "$(cat "$DISCOUNT_CODES_PID_FILE")"
+    echo "    Sent SIGHUP to gunicorn to reload configuration and gracefully restart workers"
 else
     echo "    Warning: PID file not found at $DISCOUNT_CODES_PID_FILE"
 fi
