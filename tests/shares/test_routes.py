@@ -83,6 +83,57 @@ def test_view_share_expired_shows_message(
     assert b"This share link has expired" in response.data
 
 
+def test_view_share_increments_visit_count(
+    client: FlaskClient, db, test_user: User
+) -> None:
+    """Test viewing a valid share increments visit_count."""
+    code = DiscountCode(
+        code="VISIT10",
+        store_name="Visit Store",
+        user_id=test_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id)
+    db.session.add(share)
+    db.session.commit()
+
+    assert share.visit_count == 0
+
+    client.get(f"/shares/{share.token}")
+    db.session.refresh(share)
+    assert share.visit_count == 1
+
+    client.get(f"/shares/{share.token}")
+    db.session.refresh(share)
+    assert share.visit_count == 2
+
+
+def test_view_share_expired_does_not_increment_visit_count(
+    client: FlaskClient, db, test_user: User
+) -> None:
+    """Test viewing an expired share does not increment visit_count."""
+    code = DiscountCode(
+        code="EXPVISIT10",
+        store_name="Expired Visit Store",
+        user_id=test_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(
+        discount_code_id=code.id,
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+    db.session.add(share)
+    db.session.commit()
+
+    client.get(f"/shares/{share.token}")
+    db.session.refresh(share)
+    assert share.visit_count == 0
+
+
 def test_view_share_invalid_token_404(client: FlaskClient, db) -> None:
     """Test viewing a share with invalid token returns 404."""
     response = client.get("/shares/invalidtoken")

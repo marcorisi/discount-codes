@@ -115,6 +115,19 @@ def test_share_repr(db, test_user: User) -> None:
     assert repr(share) == "<Share abc12345>"
 
 
+def test_share_visit_count_defaults_to_zero(db, test_user: User) -> None:
+    """Test visit_count defaults to 0 on new shares."""
+    code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id)
+    db.session.add(share)
+    db.session.commit()
+
+    assert share.visit_count == 0
+
+
 def test_share_token_unique_constraint(db, test_user: User) -> None:
     """Test Share token must be unique."""
     code = DiscountCode(code="TEST10", store_name="Test Store", user_id=test_user.id)

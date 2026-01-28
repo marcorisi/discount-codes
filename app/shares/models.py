@@ -36,6 +36,7 @@ class Share(db.Model):
     )
     created_at: datetime = db.Column(db.DateTime(timezone=True), default=utcnow)
     expires_at: datetime = db.Column(db.DateTime(timezone=True), nullable=False)
+    visit_count: int = db.Column(db.Integer, nullable=False, default=0)
 
     discount_code = db.relationship("DiscountCode", backref="shares")
 

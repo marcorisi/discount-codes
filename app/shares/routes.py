@@ -28,6 +28,9 @@ def view_share(token: str) -> str:
     if share.is_expired:
         return render_template("shares/expired.html")
 
+    share.visit_count += 1
+    db.session.commit()
+
     return render_template("shares/view.html", share=share, code=share.discount_code)
 
 
