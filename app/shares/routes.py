@@ -1,7 +1,7 @@
 """Shares domain routes."""
 
-from flask import Blueprint, abort, redirect, render_template, url_for
-from flask_login import login_required
+from flask import Blueprint, abort, flash, redirect, render_template, url_for
+from flask_login import current_user, login_required
 from werkzeug.wrappers import Response
 
 from app.codes.models import DiscountCode
@@ -50,8 +50,47 @@ def create_share(code_id: int) -> Response:
     if not discount_code.is_shareable:
         abort(400)
 
-    share = Share(discount_code_id=discount_code.id)
+    share = Share(discount_code_id=discount_code.id, created_by=current_user.id)
     db.session.add(share)
     db.session.commit()
 
     return redirect(url_for("shares.view_share", token=share.token))
+
+
+@bp.route("/")
+@login_required
+def list_shares() -> str:
+    """List all shared links created by the current user.
+
+    Returns:
+        Rendered list of shared links.
+    """
+    shares = (
+        Share.query.filter_by(created_by=current_user.id)
+        .order_by(Share.created_at.desc())
+        .all()
+    )
+    return render_template("shares/list.html", shares=shares)
+
+
+@bp.route("/<int:share_id>/delete", methods=["POST"])
+@login_required
+def delete_share(share_id: int) -> Response:
+    """Delete a shared link.
+
+    Args:
+        share_id: The ID of the share to delete.
+
+    Returns:
+        Redirect to the shared links list.
+    """
+    share = db.get_or_404(Share, share_id)
+
+    if share.created_by != current_user.id:
+        abort(403)
+
+    db.session.delete(share)
+    db.session.commit()
+    flash("Share link deleted.")
+
+    return redirect(url_for("shares.list_shares"))

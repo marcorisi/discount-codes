@@ -313,3 +313,224 @@ def test_homepage_hides_share_icon_for_expired_code(
 
     response = authenticated_client.get("/")
     assert f"/shares/create/{code.id}".encode() not in response.data
+
+
+def test_list_shares_requires_login(client: FlaskClient, db, test_user: User) -> None:
+    """Test listing shares redirects to login when not authenticated."""
+    response = client.get("/shares/")
+    assert response.status_code == 302
+    assert "/auth/login" in response.headers["Location"]
+
+
+def test_list_shares_shows_user_shares(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test listing shares shows shares created by the current user."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="LIST10",
+        store_name="List Store",
+        discount_value="10%",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.get("/shares/")
+    assert response.status_code == 200
+    assert b"List Store" in response.data
+    assert b"LIST10" in response.data
+    assert b"10%" in response.data
+    assert share.token.encode() in response.data
+
+
+def test_list_shares_hides_other_users_shares(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test listing shares does not show shares created by other users."""
+    other_user = User(username="otheruser")
+    other_user.set_password("otherpassword")
+    db.session.add(other_user)
+    db.session.commit()
+
+    code = DiscountCode(
+        code="OTHER10",
+        store_name="Other Store",
+        user_id=other_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=other_user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.get("/shares/")
+    assert response.status_code == 200
+    assert b"Other Store" not in response.data
+
+
+def test_list_shares_empty_state(authenticated_client: FlaskClient, db) -> None:
+    """Test listing shares shows empty state when no shares exist."""
+    response = authenticated_client.get("/shares/")
+    assert response.status_code == 200
+    assert b"No shared links yet" in response.data
+
+
+def test_list_shares_shows_active_status(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test listing shares shows Active badge for non-expired shares."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="ACTIVE10",
+        store_name="Active Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.get("/shares/")
+    assert b"Active" in response.data
+
+
+def test_list_shares_shows_expired_status(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test listing shares shows Expired badge for expired shares."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="EXP10",
+        store_name="Exp Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(
+        discount_code_id=code.id,
+        created_by=user.id,
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+    )
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.get("/shares/")
+    assert b"Expired" in response.data
+
+
+def test_delete_share_requires_login(
+    client: FlaskClient, db, test_user: User
+) -> None:
+    """Test deleting a share redirects to login when not authenticated."""
+    code = DiscountCode(
+        code="DEL10",
+        store_name="Del Store",
+        user_id=test_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=test_user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = client.post(f"/shares/{share.id}/delete")
+    assert response.status_code == 302
+    assert "/auth/login" in response.headers["Location"]
+
+
+def test_delete_share_removes_share(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test deleting a share removes it from the database."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="DELOK10",
+        store_name="DelOk Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=user.id)
+    db.session.add(share)
+    db.session.commit()
+    share_id = share.id
+    token = share.token
+
+    response = authenticated_client.post(
+        f"/shares/{share_id}/delete",
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    assert db.session.get(Share, share_id) is None
+
+    # Verify the token no longer works
+    response = authenticated_client.get(f"/shares/{token}")
+    assert response.status_code == 404
+
+
+def test_delete_share_forbidden_for_other_user(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test deleting a share owned by another user returns 403."""
+    other_user = User(username="otheruser2")
+    other_user.set_password("otherpassword")
+    db.session.add(other_user)
+    db.session.commit()
+
+    code = DiscountCode(
+        code="FORBID10",
+        store_name="Forbid Store",
+        user_id=other_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=other_user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.post(f"/shares/{share.id}/delete")
+    assert response.status_code == 403
+
+
+def test_delete_share_404_for_nonexistent(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test deleting a nonexistent share returns 404."""
+    response = authenticated_client.post("/shares/99999/delete")
+    assert response.status_code == 404
+
+
+def test_create_share_sets_created_by(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test creating a share sets created_by to the current user."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="CREATOR10",
+        store_name="Creator Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    authenticated_client.post(
+        f"/shares/create/{code.id}",
+        follow_redirects=False,
+    )
+
+    share = Share.query.filter_by(discount_code_id=code.id).first()
+    assert share is not None
+    assert share.created_by == user.id

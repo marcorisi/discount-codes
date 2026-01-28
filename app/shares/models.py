@@ -37,8 +37,10 @@ class Share(db.Model):
     created_at: datetime = db.Column(db.DateTime(timezone=True), default=utcnow)
     expires_at: datetime = db.Column(db.DateTime(timezone=True), nullable=False)
     visit_count: int = db.Column(db.Integer, nullable=False, default=0)
+    created_by: int = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
 
     discount_code = db.relationship("DiscountCode", backref="shares")
+    creator = db.relationship("User", backref="shares")
 
     def __init__(self, **kwargs) -> None:
         """Initialize a Share with auto-generated token and expiration."""
