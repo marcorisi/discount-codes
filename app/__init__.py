@@ -3,12 +3,15 @@
 import shlex
 import subprocess
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import click
 from flask import Flask
 
 from app.config import config
 from app.extensions import db, login_manager, migrate
+
+CEST_TZ = ZoneInfo("Europe/Rome")
 
 
 @login_manager.user_loader
@@ -52,6 +55,13 @@ def create_app(config_name: str = "default") -> Flask:
     @app.route('/robots.txt')
     def robots_txt():
         return app.send_static_file('robots.txt')
+
+    @app.template_filter("cest")
+    def cest_filter(dt: datetime, fmt: str = "%b %d, %Y %H:%M") -> str:
+        """Convert a UTC datetime to CEST timezone and format it."""
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        return dt.astimezone(CEST_TZ).strftime(fmt)
 
     register_cli_commands(app)
 

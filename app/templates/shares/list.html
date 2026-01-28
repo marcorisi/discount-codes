@@ -30,11 +30,11 @@
                 </div>
                 <div class="flex justify-between">
                     <span>Created</span>
-                    <span>{{ share.created_at.strftime('%b %d, %Y %H:%M') }}</span>
+                    <span>{{ share.created_at|cest }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span>Expires</span>
-                    <span>{{ share.expires_at.strftime('%b %d, %Y %H:%M') }}</span>
+                    <span>{{ share.expires_at|cest }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span>Visits</span>
