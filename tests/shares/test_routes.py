@@ -38,6 +38,48 @@ def test_view_share_valid_token(client: FlaskClient, db, test_user: User) -> Non
     assert b"Test notes" in response.data
 
 
+def test_view_share_shows_creator_username(
+    client: FlaskClient, db, test_user: User
+) -> None:
+    """Test viewing a share shows the creator's username."""
+    code = DiscountCode(
+        code="CREATOR10",
+        store_name="Creator Store",
+        user_id=test_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=test_user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = client.get(f"/shares/{share.token}")
+    assert response.status_code == 200
+    assert b"Shared by testuser" in response.data
+
+
+def test_view_share_hides_creator_when_not_set(
+    client: FlaskClient, db, test_user: User
+) -> None:
+    """Test viewing a share without a creator does not show shared by."""
+    code = DiscountCode(
+        code="NOCREATOR10",
+        store_name="No Creator Store",
+        user_id=test_user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = client.get(f"/shares/{share.token}")
+    assert response.status_code == 200
+    assert b"Shared by" not in response.data
+
+
 def test_view_share_no_auth_required(client: FlaskClient, db, test_user: User) -> None:
     """Test viewing a share does not require authentication."""
     code = DiscountCode(
