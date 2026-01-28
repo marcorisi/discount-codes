@@ -27,7 +27,7 @@ def index() -> str:
         Rendered homepage template with filtered codes sorted by expiry date.
     """
     search = request.args.get("search", "").strip()
-    expiration = request.args.get("expiration", "all")
+    expiration = request.args.get("expiration", "active")
     user_id_str = request.args.get("user_id", "").strip()
     today = date.today()
 

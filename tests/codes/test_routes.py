@@ -92,7 +92,7 @@ def test_homepage_codes_sorted_by_expiry(authenticated_client: FlaskClient, db) 
 
 
 def test_homepage_shows_expired_codes(authenticated_client: FlaskClient, db) -> None:
-    """Test homepage shows expired codes with expired label."""
+    """Test homepage shows expired codes with expired label when viewing all."""
     user = _get_test_user(db)
     yesterday = date.today() - timedelta(days=1)
     code = DiscountCode(
@@ -104,7 +104,7 @@ def test_homepage_shows_expired_codes(authenticated_client: FlaskClient, db) -> 
     db.session.add(code)
     db.session.commit()
 
-    response = authenticated_client.get("/")
+    response = authenticated_client.get("/?expiration=all")
     assert b"EXPIRED10" in response.data
     assert b"Expired" in response.data
 
@@ -452,6 +452,36 @@ def test_search_case_insensitive(authenticated_client: FlaskClient, db) -> None:
     assert b"Amazon Store" in response.data
 
 
+def test_default_filter_is_active(authenticated_client: FlaskClient, db) -> None:
+    """Test homepage defaults to showing only active codes."""
+    user = _get_test_user(db)
+    today = date.today()
+    active_code = DiscountCode(
+        code="ACTIVE",
+        store_name="Active Store",
+        expiry_date=today + timedelta(days=10),
+        user_id=user.id,
+    )
+    expired_code = DiscountCode(
+        code="EXPIRED",
+        store_name="Expired Store",
+        expiry_date=today - timedelta(days=1),
+        user_id=user.id,
+    )
+    no_expiry_code = DiscountCode(
+        code="NOEXPIRY",
+        store_name="No Expiry Store",
+        user_id=user.id,
+    )
+    db.session.add_all([active_code, expired_code, no_expiry_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/")
+    assert b"ACTIVE" in response.data
+    assert b"NOEXPIRY" in response.data
+    assert b"EXPIRED" not in response.data
+
+
 def test_filter_active_codes(authenticated_client: FlaskClient, db) -> None:
     """Test filtering to show only active (non-expired) codes."""
     user = _get_test_user(db)
@@ -572,7 +602,10 @@ def test_clear_button_shown_with_filters(authenticated_client: FlaskClient) -> N
     response = authenticated_client.get("/?search=test")
     assert b"Clear" in response.data
 
-    response = authenticated_client.get("/?expiration=active")
+    response = authenticated_client.get("/?expiration=expired")
+    assert b"Clear" in response.data
+
+    response = authenticated_client.get("/?expiration=all")
     assert b"Clear" in response.data
 
 
