@@ -40,7 +40,7 @@
                     class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium">
                 Search
             </button>
-            {% if search or expiration != 'all' or user_id %}
+            {% if search or expiration not in ('active', '') or user_id %}
             <a href="{{ url_for('codes.index') }}"
                class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-center">
                 Clear
@@ -169,7 +169,7 @@
     </div>
     {% else %}
     <div class="text-center py-12">
-        {% if search or expiration != 'all' or user_id %}
+        {% if search or expiration not in ('active', '') or user_id %}
         <p class="text-gray-500 mb-4">No discount codes match your search criteria.</p>
         <a href="{{ url_for('codes.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">
             Clear filters
