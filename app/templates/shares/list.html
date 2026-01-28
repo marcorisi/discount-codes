@@ -40,6 +40,12 @@
                     <span>Visits</span>
                     <span>{{ share.visit_count }}</span>
                 </div>
+                {% if share.creator %}
+                <div class="flex justify-between">
+                    <span>Created by</span>
+                    <span>{{ share.creator.username }}</span>
+                </div>
+                {% endif %}
             </div>
 
             <div class="flex items-center justify-between">

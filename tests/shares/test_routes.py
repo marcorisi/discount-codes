@@ -38,10 +38,10 @@ def test_view_share_valid_token(client: FlaskClient, db, test_user: User) -> Non
     assert b"Test notes" in response.data
 
 
-def test_view_share_shows_creator_username(
+def test_view_share_does_not_show_creator(
     client: FlaskClient, db, test_user: User
 ) -> None:
-    """Test viewing a share shows the creator's username."""
+    """Test viewing a share does not show the creator's username."""
     code = DiscountCode(
         code="CREATOR10",
         store_name="Creator Store",
@@ -51,27 +51,6 @@ def test_view_share_shows_creator_username(
     db.session.commit()
 
     share = Share(discount_code_id=code.id, created_by=test_user.id)
-    db.session.add(share)
-    db.session.commit()
-
-    response = client.get(f"/shares/{share.token}")
-    assert response.status_code == 200
-    assert b"Shared by testuser" in response.data
-
-
-def test_view_share_hides_creator_when_not_set(
-    client: FlaskClient, db, test_user: User
-) -> None:
-    """Test viewing a share without a creator does not show shared by."""
-    code = DiscountCode(
-        code="NOCREATOR10",
-        store_name="No Creator Store",
-        user_id=test_user.id,
-    )
-    db.session.add(code)
-    db.session.commit()
-
-    share = Share(discount_code_id=code.id)
     db.session.add(share)
     db.session.commit()
 
@@ -388,6 +367,29 @@ def test_list_shares_shows_user_shares(
     assert b"LIST10" in response.data
     assert b"10%" in response.data
     assert share.token.encode() in response.data
+
+
+def test_list_shares_shows_creator_username(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test listing shares shows the creator's username."""
+    user = _get_test_user(db)
+    code = DiscountCode(
+        code="LISTCREATOR10",
+        store_name="List Creator Store",
+        user_id=user.id,
+    )
+    db.session.add(code)
+    db.session.commit()
+
+    share = Share(discount_code_id=code.id, created_by=user.id)
+    db.session.add(share)
+    db.session.commit()
+
+    response = authenticated_client.get("/shares/")
+    assert response.status_code == 200
+    assert b"Created by" in response.data
+    assert user.username.encode() in response.data
 
 
 def test_list_shares_hides_other_users_shares(
