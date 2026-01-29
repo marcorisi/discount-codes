@@ -148,7 +148,7 @@
                         {% if code.expiry_date < today %}
                         <span class="text-red-600 font-medium">Expired {{ code.expiry_date.strftime('%b %d, %Y') }}</span>
                         {% else %}
-                        <span class="text-gray-500">Expires {{ code.expiry_date.strftime('%b %d, %Y') }}</span>
+                        <span class="text-gray-500">Expires {{ code.expiry_date.strftime('%b %d, %Y') }}{{ code.expiry_date|expiry_proximity }}</span>
                         {% endif %}
                     {% else %}
                     <span class="text-gray-400">No expiry</span>

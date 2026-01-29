@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import click
 from flask import Flask
+from markupsafe import Markup
 
 from app.config import config
 from app.extensions import db, login_manager, migrate
@@ -62,6 +63,30 @@ def create_app(config_name: str = "default") -> Flask:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=ZoneInfo("UTC"))
         return dt.astimezone(CEST_TZ).strftime(fmt)
+
+    @app.template_filter("expiry_proximity")
+    def expiry_proximity_filter(expiry_date: date | None) -> Markup:
+        """Return an HTML snippet showing how close the expiry date is.
+
+        Returns bold text for ≤7 days, normal text for 8-30 days,
+        or empty string if >30 days or no expiry date.
+        """
+        if expiry_date is None:
+            return Markup("")
+        days_left = (expiry_date - date.today()).days
+        if days_left < 0:
+            return Markup("")
+        if days_left == 0:
+            label = "(today)"
+        elif days_left == 1:
+            label = "(in 1 day)"
+        else:
+            label = f"(in {days_left} days)"
+        if days_left <= 7:
+            return Markup(f' <strong>{label}</strong>')
+        if days_left <= 30:
+            return Markup(f" {label}")
+        return Markup("")
 
     register_cli_commands(app)
 
