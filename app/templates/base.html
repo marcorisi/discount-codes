@@ -16,12 +16,19 @@
     {% if current_user.is_authenticated %}
     <nav class="bg-white shadow-sm">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="{{ url_for('codes.index') }}" class="text-xl font-bold text-gray-800">Discount Code Manager</a>
             <div class="flex items-center space-x-4">
+                <a href="{{ url_for('codes.index') }}" class="text-gray-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="h-8 w-8">
+                      <g transform="rotate(-10, 32, 32)">
+                        <path d="M12 8 L52 8 Q58 8 58 14 L58 50 Q58 56 52 56 L12 56 L2 32 Z" fill="#2563eb"/>
+                        <circle cx="16" cy="32" r="4.5" fill="white"/>
+                        <text x="38" y="40" font-family="system-ui, sans-serif" font-size="26" font-weight="bold" fill="white" text-anchor="middle">%</text>
+                      </g>
+                    </svg>
+                </a>
                 <a href="{{ url_for('shares.list_shares') }}" class="text-gray-600 hover:text-gray-800">Shared Links</a>
-                <span class="text-gray-600">{{ current_user.username }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="text-red-600 hover:text-red-800">Logout</a>
             </div>
+            <a href="{{ url_for('auth.logout') }}" class="text-red-600 hover:text-red-800">Logout</a>
         </div>
     </nav>
     {% endif %}
