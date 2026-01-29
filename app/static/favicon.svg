@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g transform="rotate(-10, 32, 32)">
+    <!-- Tag body: rectangle with a pointed left edge -->
+    <path d="M12 8 L52 8 Q58 8 58 14 L58 50 Q58 56 52 56 L12 56 L2 32 Z" fill="#2563eb"/>
+    <!-- Hole for the string -->
+    <circle cx="16" cy="32" r="4.5" fill="white"/>
+    <!-- Percent symbol -->
+    <text x="38" y="40" font-family="system-ui, sans-serif" font-size="26" font-weight="bold" fill="white" text-anchor="middle">%</text>
+  </g>
+</svg>
