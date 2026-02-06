@@ -314,7 +314,7 @@ def test_edit_code_htmx_request(authenticated_client: FlaskClient, db) -> None:
     )
     assert response.status_code == 200
     assert b"Discount code updated successfully" in response.data
-    assert b"Back to Home" in response.data
+    assert b"HTMXUPDATED for Updated HTMX Store" in response.data
 
 
 def test_homepage_shows_edit_icon(authenticated_client: FlaskClient, db) -> None:
