@@ -97,7 +97,7 @@ flask create-user <username>
 
 ### Send expiry reminders
 
-Send Slack notifications for discount codes expiring within a configurable number of days.
+Send Slack notifications for discount codes expiring at configured reminder thresholds. By default, reminders are sent at 7 days and 3 days before expiry. The 3-day reminder includes an "URGENT" prefix for visibility.
 
 ```bash
 flask send-expiry-reminders
@@ -107,14 +107,19 @@ flask send-expiry-reminders
 - `SLACK_NOTIFIER_CMD` - Command to execute for sending notifications (e.g., a script that posts to Slack)
 
 **Optional environment variables:**
-- `REMINDER_DAYS_BEFORE` - Number of days before expiry to send reminders (default: 7)
+- `REMINDER_DAYS_LIST` - Comma-separated days before expiry to send reminders (default: `7,3`)
+- `REMINDER_DAYS_BEFORE` - Legacy: single threshold in days (default: 7, superseded by `REMINDER_DAYS_LIST`)
 
 **Example:**
 ```bash
 export SLACK_NOTIFIER_CMD="/path/to/slack-notify.sh"
-export REMINDER_DAYS_BEFORE=7
+export REMINDER_DAYS_LIST="7,3"  # Send reminders 7 days and 3 days before expiry
 flask send-expiry-reminders
 ```
+
+**Notification format:**
+- 7+ days before expiry: `:warning: Reminder: *StoreName* discount code *(Value)* expires on _Date_!`
+- 3 days or less: `:rotating_light: URGENT: Reminder: *StoreName* discount code *(Value)* expires on _Date_!`
 
 ## Running Tests
 
