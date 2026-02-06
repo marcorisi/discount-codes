@@ -18,6 +18,7 @@ def app_with_slack_cmd() -> Flask:
     app = create_app("testing")
     app.config["SLACK_NOTIFIER_CMD"] = "echo"
     app.config["REMINDER_DAYS_BEFORE"] = 7
+    app.config["REMINDER_DAYS_LIST"] = [7, 3]
     return app
 
 
@@ -53,11 +54,11 @@ def test_user_for_cli(db_with_slack):
 class TestSendExpiryReminders:
     """Tests for send-expiry-reminders CLI command."""
 
-    def test_codes_expiring_within_threshold_are_included(
+    def test_codes_expiring_at_7_day_threshold_are_included(
         self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
     ):
-        """Test that codes expiring within threshold trigger notifications."""
-        expiry = date.today() + timedelta(days=3)
+        """Test that codes expiring at 7-day threshold trigger notifications."""
+        expiry = date.today() + timedelta(days=7)
         code = DiscountCode(
             code="TEST123",
             store_name="Amazon",
@@ -82,15 +83,77 @@ class TestSendExpiryReminders:
         assert call_args[0] == "echo"
         assert "Amazon" in call_args[1]
         assert "20% off" in call_args[1]
+        # 7-day reminder uses warning emoji, not urgent
+        assert ":warning:" in call_args[1]
+        assert "URGENT" not in call_args[1]
+
+    def test_codes_expiring_at_3_day_threshold_are_included_with_urgent(
+        self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
+    ):
+        """Test that codes expiring at 3-day threshold trigger urgent notifications."""
+        expiry = date.today() + timedelta(days=3)
+        code = DiscountCode(
+            code="URGENT123",
+            store_name="BestBuy",
+            discount_value="30% off",
+            expiry_date=expiry,
+            is_used=False,
+            user_id=test_user_for_cli.id,
+        )
+        db_with_slack.session.add(code)
+        db_with_slack.session.commit()
+
+        runner = CliRunner()
+        with patch("subprocess.run") as mock_run:
+            result = runner.invoke(
+                app_with_slack_cmd.cli, ["send-expiry-reminders"]
+            )
+
+        assert result.exit_code == 0
+        assert "Sent 1 expiry reminder(s)." in result.output
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert call_args[0] == "echo"
+        assert "BestBuy" in call_args[1]
+        # 3-day reminder uses rotating_light emoji and URGENT prefix
+        assert ":rotating_light:" in call_args[1]
+        assert "URGENT" in call_args[1]
+
+    def test_codes_expiring_between_thresholds_are_excluded(
+        self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
+    ):
+        """Test that codes expiring between thresholds do not trigger notifications."""
+        # 5 days is between 7 and 3 day thresholds
+        expiry = date.today() + timedelta(days=5)
+        code = DiscountCode(
+            code="BETWEEN123",
+            store_name="Target",
+            discount_value="15% off",
+            expiry_date=expiry,
+            is_used=False,
+            user_id=test_user_for_cli.id,
+        )
+        db_with_slack.session.add(code)
+        db_with_slack.session.commit()
+
+        runner = CliRunner()
+        with patch("subprocess.run") as mock_run:
+            result = runner.invoke(
+                app_with_slack_cmd.cli, ["send-expiry-reminders"]
+            )
+
+        assert result.exit_code == 0
+        assert "Sent 0 expiry reminder(s)." in result.output
+        mock_run.assert_not_called()
 
     def test_used_codes_are_excluded(
         self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
     ):
         """Test that used codes do not trigger notifications."""
-        expiry = date.today() + timedelta(days=3)
+        expiry = date.today() + timedelta(days=3)  # At 3-day threshold
         code = DiscountCode(
             code="USED123",
-            store_name="BestBuy",
+            store_name="Walmart",
             discount_value="10% off",
             expiry_date=expiry,
             is_used=True,
@@ -192,7 +255,7 @@ class TestSendExpiryReminders:
         """Test that subprocess failure stops execution and returns error."""
         import subprocess
 
-        expiry = date.today() + timedelta(days=3)
+        expiry = date.today() + timedelta(days=7)  # At 7-day threshold
         code = DiscountCode(
             code="FAIL123",
             store_name="HomeDepot",
@@ -231,10 +294,11 @@ class TestSendExpiryReminders:
 
             _db.drop_all()
 
-    def test_codes_expiring_today_are_included(
+    def test_codes_expiring_today_are_included_when_0_in_thresholds(
         self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
     ):
-        """Test that codes expiring today trigger notifications."""
+        """Test that codes expiring today trigger notifications when 0 is in thresholds."""
+        app_with_slack_cmd.config["REMINDER_DAYS_LIST"] = [7, 3, 0]
         expiry = date.today()
         code = DiscountCode(
             code="TODAY123",
@@ -256,21 +320,34 @@ class TestSendExpiryReminders:
         assert result.exit_code == 0
         assert "Sent 1 expiry reminder(s)." in result.output
         mock_run.assert_called_once()
+        # 0-day (today) uses urgent messaging
+        call_args = mock_run.call_args[0][0]
+        assert ":rotating_light:" in call_args[1]
+        assert "URGENT" in call_args[1]
 
-    def test_codes_expiring_exactly_at_threshold_are_included(
+    def test_multiple_codes_at_different_thresholds_both_notified(
         self, app_with_slack_cmd: Flask, db_with_slack, test_user_for_cli
     ):
-        """Test that codes expiring exactly at threshold trigger notifications."""
-        expiry = date.today() + timedelta(days=7)  # Exactly at threshold
-        code = DiscountCode(
-            code="EXACT123",
+        """Test that codes at both 7-day and 3-day thresholds trigger notifications."""
+        # Code at 7-day threshold
+        code_7day = DiscountCode(
+            code="WEEK123",
             store_name="Newegg",
             discount_value="40% off",
-            expiry_date=expiry,
+            expiry_date=date.today() + timedelta(days=7),
             is_used=False,
             user_id=test_user_for_cli.id,
         )
-        db_with_slack.session.add(code)
+        # Code at 3-day threshold
+        code_3day = DiscountCode(
+            code="URGENT456",
+            store_name="Amazon",
+            discount_value="25% off",
+            expiry_date=date.today() + timedelta(days=3),
+            is_used=False,
+            user_id=test_user_for_cli.id,
+        )
+        db_with_slack.session.add_all([code_7day, code_3day])
         db_with_slack.session.commit()
 
         runner = CliRunner()
@@ -280,5 +357,9 @@ class TestSendExpiryReminders:
             )
 
         assert result.exit_code == 0
-        assert "Sent 1 expiry reminder(s)." in result.output
-        mock_run.assert_called_once()
+        assert "Sent 2 expiry reminder(s)." in result.output
+        assert mock_run.call_count == 2
+        # Check that one call has warning (7-day) and one has urgent (3-day)
+        calls = [call[0][0][1] for call in mock_run.call_args_list]
+        assert any(":warning:" in call and "Newegg" in call for call in calls)
+        assert any(":rotating_light:" in call and "Amazon" in call for call in calls)
