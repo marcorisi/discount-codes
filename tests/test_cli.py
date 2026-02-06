@@ -17,7 +17,6 @@ def app_with_slack_cmd() -> Flask:
     """Create application with SLACK_NOTIFIER_CMD configured."""
     app = create_app("testing")
     app.config["SLACK_NOTIFIER_CMD"] = "echo"
-    app.config["REMINDER_DAYS_BEFORE"] = 7
     app.config["REMINDER_DAYS_LIST"] = [7, 3]
     return app
 

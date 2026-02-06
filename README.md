@@ -108,7 +108,6 @@ flask send-expiry-reminders
 
 **Optional environment variables:**
 - `REMINDER_DAYS_LIST` - Comma-separated days before expiry to send reminders (default: `7,3`)
-- `REMINDER_DAYS_BEFORE` - Legacy: single threshold in days (default: 7, superseded by `REMINDER_DAYS_LIST`)
 
 **Example:**
 ```bash
