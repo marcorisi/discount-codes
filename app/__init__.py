@@ -115,35 +115,45 @@ def register_cli_commands(app: Flask) -> None:
 
     @app.cli.command("send-expiry-reminders")
     def send_expiry_reminders() -> None:
-        """Send Slack notifications for discount codes expiring soon."""
+        """Send Slack notifications for discount codes expiring soon.
+
+        Sends reminders at multiple thresholds (default: 7 days and 3 days).
+        Each code only receives a reminder for the closest matching threshold.
+        """
         cmd = app.config.get("SLACK_NOTIFIER_CMD")
         if not cmd:
             click.echo(f"[{datetime.now().isoformat()}] Error: SLACK_NOTIFIER_CMD is not configured.")
             raise SystemExit(1)
 
-        days_before = app.config.get("REMINDER_DAYS_BEFORE", 7)
+        # Get thresholds from config (sorted descending, e.g., [7, 3])
+        reminder_days_list = app.config.get("REMINDER_DAYS_LIST", [7, 3])
         today = date.today()
-        threshold_date = today + timedelta(days=days_before)
-
-        codes = DiscountCode.query.filter(
-            DiscountCode.is_used == False,  # noqa: E712
-            DiscountCode.expiry_date.isnot(None),
-            DiscountCode.expiry_date >= today,
-            DiscountCode.expiry_date <= threshold_date,
-        ).all()
 
         sent_count = 0
-        for code in codes:
-            message = (
-                f":warning: Reminder: *{code.store_name}* discount code "
-                f"*({code.discount_value})* expires on _{code.expiry_date}_!"
-            )
-            try:
-                subprocess.run([*shlex.split(cmd), message], check=True)
-                sent_count += 1
-            except subprocess.CalledProcessError as e:
-                click.echo(f"[{datetime.now().isoformat()}] Error: Failed to send notification: {e}")
-                raise SystemExit(1)
+        for days_before in reminder_days_list:
+            threshold_date = today + timedelta(days=days_before)
+
+            # Find codes expiring exactly at this threshold day
+            codes = DiscountCode.query.filter(
+                DiscountCode.is_used == False,  # noqa: E712
+                DiscountCode.expiry_date.isnot(None),
+                DiscountCode.expiry_date == threshold_date,
+            ).all()
+
+            for code in codes:
+                # Use urgent emoji for 3 days or less
+                emoji = ":rotating_light:" if days_before <= 3 else ":warning:"
+                urgency = "URGENT: " if days_before <= 3 else ""
+                message = (
+                    f"{emoji} {urgency}Reminder: *{code.store_name}* discount code "
+                    f"*({code.discount_value})* expires on _{code.expiry_date}_!"
+                )
+                try:
+                    subprocess.run([*shlex.split(cmd), message], check=True)
+                    sent_count += 1
+                except subprocess.CalledProcessError as e:
+                    click.echo(f"[{datetime.now().isoformat()}] Error: Failed to send notification: {e}")
+                    raise SystemExit(1)
 
         click.echo(f"[{datetime.now().isoformat()}] Sent {sent_count} expiry reminder(s).")
 
