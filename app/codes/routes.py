@@ -22,6 +22,7 @@ def index() -> str:
     - search: text search on store_name and store_url
     - expiration: 'all', 'active', or 'expired'
     - user_id: filter by user who created the code
+    - used: 'used', 'unused', or '' (all)
 
     Returns:
         Rendered homepage template with filtered codes sorted by expiry date.
@@ -29,6 +30,7 @@ def index() -> str:
     search = request.args.get("search", "").strip()
     expiration = request.args.get("expiration", "active")
     user_id_str = request.args.get("user_id", "").strip()
+    used = request.args.get("used", "")
     today = date.today()
 
     query = DiscountCode.query
@@ -62,6 +64,12 @@ def index() -> str:
         except ValueError:
             pass  # Invalid user_id, ignore filter
 
+    # Apply used filter
+    if used == "used":
+        query = query.filter(DiscountCode.is_used == True)  # noqa: E712
+    elif used == "unused":
+        query = query.filter(DiscountCode.is_used == False)  # noqa: E712
+
     codes = query.order_by(DiscountCode.expiry_date.asc().nullslast()).all()
     users = User.query.order_by(User.username).all()
 
@@ -72,6 +80,7 @@ def index() -> str:
         search=search,
         expiration=expiration,
         user_id=user_id_str,
+        used=used,
         users=users,
     )
 

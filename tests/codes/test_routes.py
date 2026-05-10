@@ -915,3 +915,175 @@ def test_user_filter_no_results_message(authenticated_client: FlaskClient, db) -
     response = authenticated_client.get(f"/?user_id={user2.id}")
     assert b"No discount codes match your search criteria" in response.data
     assert b"Clear filters" in response.data
+
+
+# Used filter tests
+
+
+def test_homepage_displays_used_filter(authenticated_client: FlaskClient) -> None:
+    """Test homepage displays used/unused filter select."""
+    response = authenticated_client.get("/")
+    assert b'name="used"' in response.data
+    assert b"All statuses" in response.data
+    assert b"Used only" in response.data
+    assert b"Unused only" in response.data
+
+
+def test_filter_used_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test filtering to show only used codes."""
+    user = _get_test_user(db)
+    used_code = DiscountCode(
+        code="USED10",
+        store_name="Used Store",
+        is_used=True,
+        user_id=user.id,
+    )
+    unused_code = DiscountCode(
+        code="UNUSED10",
+        store_name="Unused Store",
+        is_used=False,
+        user_id=user.id,
+    )
+    db.session.add_all([used_code, unused_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/?used=used&expiration=all")
+    assert b"USED10" in response.data
+    assert b"UNUSED10" not in response.data
+
+
+def test_filter_unused_codes(authenticated_client: FlaskClient, db) -> None:
+    """Test filtering to show only unused codes."""
+    user = _get_test_user(db)
+    used_code = DiscountCode(
+        code="REDEEMED",
+        store_name="Redeemed Store",
+        is_used=True,
+        user_id=user.id,
+    )
+    unused_code = DiscountCode(
+        code="AVAILABLE",
+        store_name="Available Store",
+        is_used=False,
+        user_id=user.id,
+    )
+    db.session.add_all([used_code, unused_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/?used=unused")
+    assert b"AVAILABLE" in response.data
+    assert b"REDEEMED" not in response.data
+
+
+def test_filter_used_shows_all_statuses_when_empty(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test filtering with empty used parameter shows all codes."""
+    user = _get_test_user(db)
+    used_code = DiscountCode(
+        code="USED10",
+        store_name="Used Store",
+        is_used=True,
+        user_id=user.id,
+    )
+    unused_code = DiscountCode(
+        code="UNUSED10",
+        store_name="Unused Store",
+        is_used=False,
+        user_id=user.id,
+    )
+    db.session.add_all([used_code, unused_code])
+    db.session.commit()
+
+    response = authenticated_client.get("/?used=&expiration=all")
+    assert b"USED10" in response.data
+    assert b"UNUSED10" in response.data
+
+
+def test_filter_used_combined_with_expiration(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test combining used filter with expiration filter."""
+    user = _get_test_user(db)
+    today = date.today()
+    used_active = DiscountCode(
+        code="USEDACTIVE",
+        store_name="Used Active Store",
+        is_used=True,
+        expiry_date=today + timedelta(days=10),
+        user_id=user.id,
+    )
+    used_expired = DiscountCode(
+        code="USEDEXPIRED",
+        store_name="Used Expired Store",
+        is_used=True,
+        expiry_date=today - timedelta(days=1),
+        user_id=user.id,
+    )
+    unused_active = DiscountCode(
+        code="UNUSEDACTIVE",
+        store_name="Unused Active Store",
+        is_used=False,
+        expiry_date=today + timedelta(days=10),
+        user_id=user.id,
+    )
+    db.session.add_all([used_active, used_expired, unused_active])
+    db.session.commit()
+
+    response = authenticated_client.get("/?used=used&expiration=active")
+    assert b"USEDACTIVE" in response.data
+    assert b"USEDEXPIRED" not in response.data
+    assert b"UNUSEDACTIVE" not in response.data
+
+
+def test_used_filter_independent_of_expiration(
+    authenticated_client: FlaskClient, db
+) -> None:
+    """Test used filter works regardless of expiration status."""
+    user = _get_test_user(db)
+    today = date.today()
+    used_expired = DiscountCode(
+        code="USEDEXPIRED",
+        store_name="Used Expired Store",
+        is_used=True,
+        expiry_date=today - timedelta(days=1),
+        user_id=user.id,
+    )
+    used_no_expiry = DiscountCode(
+        code="USEDNOEXPIRY",
+        store_name="Used No Expiry Store",
+        is_used=True,
+        user_id=user.id,
+    )
+    unused_active = DiscountCode(
+        code="UNUSEDACTIVE",
+        store_name="Unused Active Store",
+        is_used=False,
+        expiry_date=today + timedelta(days=10),
+        user_id=user.id,
+    )
+    db.session.add_all([used_expired, used_no_expiry, unused_active])
+    db.session.commit()
+
+    response = authenticated_client.get("/?used=used&expiration=all")
+    assert b"USEDEXPIRED" in response.data
+    assert b"USEDNOEXPIRY" in response.data
+    assert b"UNUSEDACTIVE" not in response.data
+
+
+def test_used_filter_preserves_selection(authenticated_client: FlaskClient) -> None:
+    """Test used filter preserves the selected value after submit."""
+    response = authenticated_client.get("/?used=used")
+    assert b'value="used" selected' in response.data
+
+    response = authenticated_client.get("/?used=unused")
+    assert b'value="unused" selected' in response.data
+
+
+def test_clear_button_shown_with_used_filter(authenticated_client: FlaskClient) -> None:
+    """Test clear button is shown when used filter is applied."""
+    response = authenticated_client.get("/?used=used")
+    assert b"Clear" in response.data
+
+    response = authenticated_client.get("/?used=unused")
+    assert b"Clear" in response.data
